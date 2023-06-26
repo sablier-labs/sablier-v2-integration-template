@@ -1,0 +1,43 @@
+{
+  "name": "sablier-integration-template",
+  "description": "Template for making on-chain integrations with Sablier V2",
+  "version": "1.0.0",
+  "author": {
+    "name": "Sablier Labs Ltd",
+    "url": "https://sablier.com"
+  },
+  "bugs": {
+    "url": "https://github.com/sablier-labs/sablier-integration-template/issues"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0",
+    "rimraf": "^5.0.1",
+    "solhint": "^3.4.1"
+  },
+  "homepage": "https://github.com/sablier-labs/sablier-integration-example#readme",
+  "keywords": [
+    "asset-streaming",
+    "blockchain",
+    "cryptoasset-streaming",
+    "cryptoassets",
+    "ethereum",
+    "foundry",
+    "money-streaming",
+    "real-time-finance",
+    "sablier",
+    "sablier-v2",
+    "smart-contracts",
+    "solidity",
+    "token-streaming"
+  ],
+  "license": "GPL-3.0-or-later",
+  "private": true,
+  "repository": "github.com:sablier-labs/sablier-integration-template",
+  "scripts": {
+    "clean": "rimraf cache out",
+    "lint": "pnpm lint:sol && pnpm prettier:check",
+    "lint:sol": "forge fmt --check && pnpm solhint \"{script,src,test}/**/*.sol\"",
+    "prettier:check": "prettier --check \"**/*.{json,md,yml}\"",
+    "prettier:write": "prettier --write \"**/*.{json,md,yml}\""
+  }
+}
