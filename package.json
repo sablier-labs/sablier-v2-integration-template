@@ -14,7 +14,7 @@
     "rimraf": "^5.0.1",
     "solhint": "^3.4.1"
   },
-  "homepage": "https://github.com/sablier-labs/sablier-integration-example#readme",
+  "homepage": "https://github.com/sablier-labs/sablier-integration-template#readme",
   "keywords": [
     "asset-streaming",
     "blockchain",
