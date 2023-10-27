@@ -11,8 +11,12 @@
   },
   "devDependencies": {
     "prettier": "^3.0.0",
-    "rimraf": "^5.0.1",
     "solhint": "^3.4.1"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "4.9.2",
+    "@prb/math": "4.0.1",
+    "@sablier/v2-core": "1.0.2"
   },
   "homepage": "https://github.com/sablier-labs/sablier-integration-template#readme",
   "keywords": [

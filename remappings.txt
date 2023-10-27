@@ -1,2 +1,4 @@
-@sablier/v2-core=lib/v2-core/
+@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
+@prb/math/=node_modules/@prb/math/
+@sablier/v2-core=node_modules/@sablier/v2-core/
 forge-std=lib/forge-std/src
