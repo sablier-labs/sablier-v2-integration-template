@@ -5,11 +5,10 @@
   bytecode_hash = "none"
   emv_version = "paris"
   fuzz = { runs = 1_000 }
-  libs = ["lib"]
   optimizer = true
   optimizer_runs = 10_000
   out = "out"
-  solc = "0.8.19"
+  solc = "0.8.21"
   src = "src"
   test = "test"
 
