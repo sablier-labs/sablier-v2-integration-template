@@ -2,13 +2,14 @@
 pragma solidity >=0.8.19;
 
 import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
-import { Test } from "forge-std/Test.sol";
+import { PRBTest } from "@prb/test/src/PRBTest.sol";
+import { StdCheats } from "forge-std/src/StdCheats.sol";
 
 import { StreamCreator } from "../src/StreamCreator.sol";
 
-contract StreamCreatorTest is Test {
+contract StreamCreatorTest is PRBTest, StdCheats {
     // Get the latest deployment address from the docs: https://docs.sablier.com/contracts/v2/deployments
-    address internal constant SABLIER_ADDRESS = address(0xB10daee1FCF62243aE27776D7a92D39dC8740f95);
+    address internal constant SABLIER_ADDRESS = address(0xe99AEff5BB41d0d7340e7B0c8001F593768ba0E5);
 
     // Test contracts
     StreamCreator internal creator;
@@ -17,7 +18,7 @@ contract StreamCreatorTest is Test {
 
     function setUp() public {
         // Fork Ethereum Mainnet
-        vm.createSelectFork({ blockNumber: 17_614_000, urlOrAlias: "mainnet" });
+        vm.createSelectFork({ blockNumber: 18_809_500, urlOrAlias: "mainnet" });
 
         // Load the Sablier contract from Ethereum Mainnet
         sablier = ISablierV2LockupLinear(SABLIER_ADDRESS);
