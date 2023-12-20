@@ -9,7 +9,7 @@ import { StreamCreator } from "../src/StreamCreator.sol";
 
 contract StreamCreatorTest is PRBTest, StdCheats {
     // Get the latest deployment address from the docs: https://docs.sablier.com/contracts/v2/deployments
-    address internal constant SABLIER_ADDRESS = address(0xe99AEff5BB41d0d7340e7B0c8001F593768ba0E5);
+    address internal constant SABLIER_ADDRESS = address(0xAFb979d9afAd1aD27C5eFf4E27226E3AB9e5dCC9);
 
     // Test contracts
     StreamCreator internal creator;
@@ -18,7 +18,7 @@ contract StreamCreatorTest is PRBTest, StdCheats {
 
     function setUp() public {
         // Fork Ethereum Mainnet
-        vm.createSelectFork({ blockNumber: 18_809_500, urlOrAlias: "mainnet" });
+        vm.createSelectFork({ blockNumber: 18_821_300, urlOrAlias: "mainnet" });
 
         // Load the Sablier contract from Ethereum Mainnet
         sablier = ISablierV2LockupLinear(SABLIER_ADDRESS);
