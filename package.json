@@ -9,17 +9,17 @@
   "bugs": {
     "url": "https://github.com/sablier-labs/sablier-integration-template/issues"
   },
-  "devDependencies": {
-    "@prb/test": "0.6.5",
-    "forge-std": "github:foundry-rs/forge-std#v1.5.6",
-    "prettier": "^3.0.0",
-    "solhint": "^3.4.1"
-  },
   "dependencies": {
     "@openzeppelin/contracts": "4.9.2",
     "@prb/math": "4.0.2",
-    "@sablier/v2-core": "1.1.1",
-    "@sablier/v2-periphery": "1.1.0"
+    "@sablier/v2-core": "1.1.2",
+    "@sablier/v2-periphery": "1.1.1"
+  },
+  "devDependencies": {
+    "@prb/test": "0.6.4",
+    "forge-std": "github:foundry-rs/forge-std#v1.5.6",
+    "prettier": "^3.0.0",
+    "solhint": "^3.4.1"
   },
   "homepage": "https://github.com/sablier-labs/sablier-integration-template#readme",
   "keywords": [
