@@ -21,22 +21,20 @@ jobs:
       - name: "Install Foundry"
         uses: "foundry-rs/foundry-toolchain@v1"
 
-      - name: "Install Pnpm"
-        uses: "pnpm/action-setup@v2"
-        with:
-          version: "8"
-
       - name: "Install Node.js"
         uses: "actions/setup-node@v3"
         with:
-          cache: "pnpm"
+          cache: "yarn"
           node-version: "lts/*"
 
+      - name: "Install Yarn"
+        run: "npm install -g yarn"
+
       - name: "Install the Node.js dependencies"
-        run: "pnpm install"
+        run: "yarn install"
 
       - name: "Lint the contracts"
-        run: "pnpm lint"
+        run: "yarn lint"
 
       - name: "Add lint summary"
         run: |
@@ -52,19 +50,17 @@ jobs:
       - name: "Install Foundry"
         uses: "foundry-rs/foundry-toolchain@v1"
 
-      - name: "Install Pnpm"
-        uses: "pnpm/action-setup@v2"
-        with:
-          version: "8"
-
       - name: "Install Node.js"
         uses: "actions/setup-node@v3"
         with:
-          cache: "pnpm"
+          cache: "yarn"
           node-version: "lts/*"
 
+      - name: "Install Yarn"
+        run: "npm install -g yarn"
+
       - name: "Install the Node.js dependencies"
-        run: "pnpm install"
+        run: "yarn install"
 
       - name: "Build the contracts and print their size"
         run: "forge build --sizes"
@@ -84,19 +80,17 @@ jobs:
       - name: "Install Foundry"
         uses: "foundry-rs/foundry-toolchain@v1"
 
-      - name: "Install Pnpm"
-        uses: "pnpm/action-setup@v2"
-        with:
-          version: "8"
-
       - name: "Install Node.js"
         uses: "actions/setup-node@v3"
         with:
-          cache: "pnpm"
+          cache: "yarn"
           node-version: "lts/*"
 
+      - name: "Install Yarn"
+        run: "npm install -g yarn"
+
       - name: "Install the Node.js dependencies"
-        run: "pnpm install"
+        run: "yarn install"
 
       - name: "Show the Foundry config"
         run: "forge config"
