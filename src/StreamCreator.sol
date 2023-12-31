@@ -8,10 +8,10 @@ import { Broker, LockupLinear } from "@sablier/v2-core/src/types/DataTypes.sol";
 
 contract StreamCreator {
     IERC20 public constant DAI = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
-    ISablierV2LockupLinear public immutable sablier;
+    ISablierV2LockupLinear public immutable SABLIER;
 
-    constructor(ISablierV2LockupLinear sablier_) {
-        sablier = sablier_;
+    constructor(ISablierV2LockupLinear sablier) {
+        SABLIER = sablier;
     }
 
     function createLockupLinearStream(uint256 totalAmount) external returns (uint256 streamId) {
@@ -19,7 +19,7 @@ contract StreamCreator {
         DAI.transferFrom(msg.sender, address(this), totalAmount);
 
         // Approve the Sablier contract to spend DAI
-        DAI.approve(address(sablier), totalAmount);
+        DAI.approve(address(SABLIER), totalAmount);
 
         // Declare the params struct
         LockupLinear.CreateWithDurations memory params;
@@ -38,6 +38,6 @@ contract StreamCreator {
         params.broker = Broker(address(0), ud60x18(0)); // Optional parameter for charging a fee
 
         // Create the Sablier stream using a function that sets the start time to `block.timestamp`
-        streamId = sablier.createWithDurations(params);
+        streamId = SABLIER.createWithDurations(params);
     }
 }
