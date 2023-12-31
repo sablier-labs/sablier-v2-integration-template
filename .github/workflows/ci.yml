@@ -21,20 +21,14 @@ jobs:
       - name: "Install Foundry"
         uses: "foundry-rs/foundry-toolchain@v1"
 
-      - name: "Install Node.js"
-        uses: "actions/setup-node@v3"
-        with:
-          cache: "yarn"
-          node-version: "lts/*"
-
-      - name: "Install Yarn"
-        run: "npm install -g yarn"
+      - name: "Install Bun"
+        uses: "oven-sh/setup-bun@v1"
 
       - name: "Install the Node.js dependencies"
-        run: "yarn install"
+        run: "bun install"
 
-      - name: "Lint the contracts"
-        run: "yarn lint"
+      - name: "Lint the code"
+        run: "bun run lint"
 
       - name: "Add lint summary"
         run: |
@@ -50,17 +44,11 @@ jobs:
       - name: "Install Foundry"
         uses: "foundry-rs/foundry-toolchain@v1"
 
-      - name: "Install Node.js"
-        uses: "actions/setup-node@v3"
-        with:
-          cache: "yarn"
-          node-version: "lts/*"
-
-      - name: "Install Yarn"
-        run: "npm install -g yarn"
+      - name: "Install Bun"
+        uses: "oven-sh/setup-bun@v1"
 
       - name: "Install the Node.js dependencies"
-        run: "yarn install"
+        run: "bun install"
 
       - name: "Build the contracts and print their size"
         run: "forge build --sizes"
@@ -80,17 +68,11 @@ jobs:
       - name: "Install Foundry"
         uses: "foundry-rs/foundry-toolchain@v1"
 
-      - name: "Install Node.js"
-        uses: "actions/setup-node@v3"
-        with:
-          cache: "yarn"
-          node-version: "lts/*"
-
-      - name: "Install Yarn"
-        run: "npm install -g yarn"
+      - name: "Install Bun"
+        uses: "oven-sh/setup-bun@v1"
 
       - name: "Install the Node.js dependencies"
-        run: "yarn install"
+        run: "bun install"
 
       - name: "Show the Foundry config"
         run: "forge config"
