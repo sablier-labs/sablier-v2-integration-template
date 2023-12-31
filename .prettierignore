@@ -1,7 +1,6 @@
 # directories
 broadcast
 cache
-lib
 node_modules
 out
 
@@ -11,6 +10,7 @@ out
 .DS_Store
 .pnp.*
 lcov.info
+bun.lockb
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
