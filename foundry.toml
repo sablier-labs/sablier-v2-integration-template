@@ -25,3 +25,4 @@
 [rpc_endpoints]
   localhost = "http://localhost:8545"
   mainnet = "${RPC_URL_MAINNET}"
+  testnet = "${RPC_URL_TESTNET}"
