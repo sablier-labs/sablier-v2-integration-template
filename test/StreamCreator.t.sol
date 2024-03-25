@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity >=0.8.19;
 
+import { Test } from "forge-std/src/Test.sol";
 import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
-import { PRBTest } from "@prb/test/src/PRBTest.sol";
-import { StdCheats } from "forge-std/src/StdCheats.sol";
 
 import { StreamCreator } from "../src/StreamCreator.sol";
 
-contract StreamCreatorTest is PRBTest, StdCheats {
+contract StreamCreatorTest is Test {
     // Get the latest deployment address from the docs: https://docs.sablier.com/contracts/v2/deployments
     address internal constant SABLIER_ADDRESS = address(0xAFb979d9afAd1aD27C5eFf4E27226E3AB9e5dCC9);
 
