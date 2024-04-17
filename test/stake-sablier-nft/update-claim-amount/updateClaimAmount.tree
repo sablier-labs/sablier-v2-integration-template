@@ -1,0 +1,11 @@
+updateClaimAmount.t.sol
+├── when the NFT is not staked
+│   └── when time is in the future
+│       ├── it should not change the staking rewards
+│       └── it should not update the last update timestamp
+└── when the NFT is staked
+    └── when time is in the future
+        ├── it should increase change the staking rewards
+        ├── it should set the last update timestamp to current time
+        ├── it should emit {ClaimAmountUpdated} event
+        └── it should return the new claim amount

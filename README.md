@@ -3,6 +3,7 @@
 This repository contains templates for building integrations with Sablier.
 
 - **StreamCreator**: A template for creating a Lockup Linear stream.
+- **StreamStaking**: A template for writing a staking contract for Sablier streams.
 
 For more information, refer to this guide on our documentation website:
 

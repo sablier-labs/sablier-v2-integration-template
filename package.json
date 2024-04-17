@@ -44,6 +44,7 @@
     "lint": "bun run lint:sol && bun run prettier:check",
     "lint:sol": "forge fmt --check && bun solhint \"{script,src,test}/**/*.sol\"",
     "prettier:check": "prettier --check \"**/*.{json,md,yml}\"",
-    "prettier:write": "prettier --write \"**/*.{json,md,yml}\""
+    "prettier:write": "prettier --write \"**/*.{json,md,yml}\"",
+    "test": "forge test"
   }
 }
