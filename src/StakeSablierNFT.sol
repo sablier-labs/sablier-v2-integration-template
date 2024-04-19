@@ -19,6 +19,14 @@ import { ISablierV2Lockup } from "@sablier/v2-core/src/interfaces/ISablierV2Lock
 /// rewards calculation will not account for unvested tokens.
 contract StakeSablierNFT is Adminable {
     /*//////////////////////////////////////////////////////////////////////////
+                                       ERRORS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    error NotAuthorized(uint256);
+    error NotStaked(uint256);
+    error NotStreamOwner(address, uint256);
+
+    /*//////////////////////////////////////////////////////////////////////////
                                 USER-FACING STORAGE
     //////////////////////////////////////////////////////////////////////////*/
 
@@ -60,13 +68,6 @@ contract StakeSablierNFT is Adminable {
                          USER-FACING NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Deposit rewards to the staking contract
-    /// @dev The admin must approve the staking contract to spend the `REWARD_TOKEN` before calling this function
-    /// @param amount The amount of `REWARD_TOKEN` to deposit
-    function depositRewards(uint256 amount) public onlyAdmin {
-        REWARD_TOKEN.transferFrom(msg.sender, address(this), amount);
-    }
-
     /// @notice Stake a Sablier NFT with specified base asset
     /// @dev The `msg.sender` must approve the staking contract to spend the Sablier NFT before calling this function
     /// @param tokenId The tokenId of the Sablier NFT to be staked
@@ -74,10 +75,14 @@ contract StakeSablierNFT is Adminable {
         address caller = msg.sender;
 
         // Check: if the Sablier NFT was minted with the staking asset
-        require(SABLIER_CONTRACT.getAsset(tokenId) == REWARD_TOKEN, "tokenId not allowed");
+        if (SABLIER_CONTRACT.getAsset(tokenId) != REWARD_TOKEN) {
+            revert NotAuthorized(tokenId);
+        }
 
         // Check: if the Sablier NFT is owned by the caller
-        require(SABLIER_CONTRACT.getRecipient(tokenId) == caller, "not owner");
+        if (SABLIER_CONTRACT.getRecipient(tokenId) != caller) {
+            revert NotStreamOwner(caller, tokenId);
+        }
 
         // Effect: store the owner of the Sablier NFT
         streamOwner[tokenId] = caller;
@@ -97,10 +102,14 @@ contract StakeSablierNFT is Adminable {
         address caller = msg.sender;
 
         // Check: if the Sablier NFT is staked
-        require(SABLIER_CONTRACT.getRecipient(tokenId) == address(this), "not staked");
+        if (SABLIER_CONTRACT.getRecipient(tokenId) != address(this)) {
+            revert NotStaked(tokenId);
+        }
 
         // Check: if the `caller` is the stored owner of the Sablier Stream
-        require(streamOwner[tokenId] == caller, "not stream owner");
+        if (streamOwner[tokenId] != caller) {
+            revert NotStreamOwner(caller, tokenId);
+        }
 
         // Effect: update the claimable rewards
         uint256 stakingRewards = updateClaimAmount(tokenId);
