@@ -1,0 +1,23 @@
+claim.t.sol
+├── given Sablier NFT is staked
+│   ├── when the caller is not same as the staker of the sablier NFT
+│   │   └── it should revert
+│   └── when the caller is same as the staker of the sablier NFT
+│       ├── when the claim amount is zero
+│       │   └── it should revert
+│       └── when the claim amount is not zero
+│           ├── given the balance of staking contracts is less than the claim amount
+│           │   └── it should revert
+│           └── given the balance of staking contracts is not less than the claim amount
+│               ├── it should emit {ClaimAmountUpdated} event
+│               ├── it should set staking rewards to zero
+│               └── it should emit {Transfer} event
+└── given Sablier NFT has been unstaked
+    ├── when the caller is not same as the current recipient of the sablier NFT
+    │   └── it should revert
+    └── when the caller is same as the current recipient of the sablier NFT
+        ├── when the claim amount is zero
+        │   └── it should revert
+        └── when the claim amount is not zero
+            ├── it should set staking rewards to zero
+            └── it should emit {Transfer} event

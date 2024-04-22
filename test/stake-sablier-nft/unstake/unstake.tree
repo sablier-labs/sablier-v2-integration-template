@@ -1,0 +1,8 @@
+unstake.t.sol
+├── when the caller is not same as the staker of the sablier NFT
+│   └── it should revert
+└── when the caller is same as the staker of the sablier NFT
+    ├── it should transfer the sablier NFT to the caller
+    ├── it should delete streamOwner
+    ├── it should update claim amount
+    └── it should emit a {Unstaked} event
