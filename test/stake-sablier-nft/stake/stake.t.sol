@@ -30,7 +30,7 @@ contract Stake_Test is StakeSablierNFT_Fork_Test {
         // Change the caller to the staker again
         vm.startPrank({ msgSender: staker });
 
-        vm.expectRevert(abi.encodeWithSelector(NotAuthorized.selector, existingStreamId));
+        vm.expectRevert(abi.encodeWithSelector(InvalidToken.selector, sablier.getAsset(existingStreamId), token));
         stakingContract.stake(existingStreamId);
     }
 

@@ -6,6 +6,10 @@ import { Adminable } from "@sablier/v2-core/src/abstracts/Adminable.sol";
 import { ISablierV2Lockup } from "@sablier/v2-core/src/interfaces/ISablierV2Lockup.sol";
 
 /// @title StakeSablierNFT
+/// @notice DISCLAIMER: This template has not been audited and is provided "as is" with no warranties of any kind,
+/// either express or implied. It is intended solely for demonstration purposes on how to build a staking contract
+/// using Sablier NFT. This template should not be used in a production environment. It makes specific assumptions that
+/// may not be applicable to your particular needs.
 /// @dev This template allows users to stake Sablier NFTs and earn staking rewards.
 ///
 ///   Requirements:
@@ -22,8 +26,7 @@ contract StakeSablierNFT is Adminable {
     //////////////////////////////////////////////////////////////////////////*/
 
     error ClaimAmountExceedsBalance(uint256 claimAmount, uint256 balance);
-    error NotAuthorized(uint256 tokenId);
-    error NotStaked(uint256 tokenId);
+    error InvalidToken(IERC20 streamingToken, IERC20 rewardToken);
     error NotStreamOwner(address account, uint256 tokenId);
     error ZeroAmount();
 
@@ -65,26 +68,6 @@ contract StakeSablierNFT is Adminable {
     mapping(uint256 tokenId => address owner) public streamOwner;
 
     /*//////////////////////////////////////////////////////////////////////////
-                                     MODIFIERS
-    //////////////////////////////////////////////////////////////////////////*/
-
-    modifier onlyStoredStreamOwner(uint256 tokenId) {
-        // Check: if the `msg.sender` is the stored owner of the Sablier Stream
-        if (streamOwner[tokenId] != msg.sender) {
-            revert NotStreamOwner(msg.sender, tokenId);
-        }
-        _;
-    }
-
-    modifier onlyStreamRecipient(uint256 tokenId) {
-        // Check: if the `msg.sender` is the recipient of the Sablier Stream
-        if (SABLIER_CONTRACT.getRecipient(tokenId) != msg.sender) {
-            revert NotStreamOwner(msg.sender, tokenId);
-        }
-        _;
-    }
-
-    /*//////////////////////////////////////////////////////////////////////////
                                      CONSTRUCTOR
     //////////////////////////////////////////////////////////////////////////*/
 
@@ -102,22 +85,27 @@ contract StakeSablierNFT is Adminable {
                          USER-FACING NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @notice Claim the staking rewards for the `tokenId` when Sablier NFT is staked.
-    /// @dev This function can only be called by the original owner of the Sablier NFT
+    /// @notice Claim the staking rewards for the `tokenId`.
+    /// @dev
+    /// If NFT is staked:
+    ///   - This function should be called by the original owner of the Sablier NFT
+    ///   - The staking rewards are updated before claiming
+    /// If NFT is not staked:
+    ///   - This function should be called by the current recipient of the Sablier NFT
+    ///   - The staking rewards are loaded from storage
     /// @param tokenId The tokenId of the Sablier NFT to withdraw rewards for
-    function claimWhenStaked(uint256 tokenId) public onlyStoredStreamOwner(tokenId) {
-        // Effect: update the claimable rewards
-        uint256 claimAmount = updateClaimAmount(tokenId);
+    function claim(uint256 tokenId) public {
+        uint256 claimAmount;
 
-        _claim(claimAmount, tokenId);
-    }
-
-    /// @notice Claim the staking rewards for the `tokenId` after Sablier NFT has been unstaked.
-    /// @dev This function can only be called by the current recipient of the Sablier NFT
-    /// @param tokenId The tokenId of the Sablier NFT to withdraw rewards for
-    function claimWhenUnstaked(uint256 tokenId) public onlyStreamRecipient(tokenId) {
-        // Load the staking rewards from storage
-        uint256 claimAmount = stakingRewards[tokenId];
+        if (streamOwner[tokenId] == msg.sender) {
+            // Effect: update the claimable rewards since the stream is staked
+            claimAmount = updateClaimAmount(tokenId);
+        } else if (SABLIER_CONTRACT.getRecipient(tokenId) == msg.sender) {
+            // Load the staking rewards from storage since the stream is not staked
+            claimAmount = stakingRewards[tokenId];
+        } else {
+            revert NotStreamOwner(msg.sender, tokenId);
+        }
 
         _claim(claimAmount, tokenId);
     }
@@ -125,10 +113,16 @@ contract StakeSablierNFT is Adminable {
     /// @notice Stake a Sablier NFT with specified base asset
     /// @dev The `msg.sender` must approve the staking contract to spend the Sablier NFT before calling this function
     /// @param tokenId The tokenId of the Sablier NFT to be staked
-    function stake(uint256 tokenId) public onlyStreamRecipient(tokenId) {
+    function stake(uint256 tokenId) public {
+        // Check: if the `msg.sender` is the recipient of the Sablier Stream
+        if (SABLIER_CONTRACT.getRecipient(tokenId) != msg.sender) {
+            revert NotStreamOwner(msg.sender, tokenId);
+        }
+
         // Check: if the Sablier NFT was minted with the staking asset
-        if (SABLIER_CONTRACT.getAsset(tokenId) != REWARD_TOKEN) {
-            revert NotAuthorized(tokenId);
+        IERC20 streamingAsset = IERC20(SABLIER_CONTRACT.getAsset(tokenId));
+        if (streamingAsset != REWARD_TOKEN) {
+            revert InvalidToken(streamingAsset, REWARD_TOKEN);
         }
 
         // Effect: store the owner of the Sablier NFT
@@ -146,7 +140,12 @@ contract StakeSablierNFT is Adminable {
     /// @notice Unstaking a Sablier NFT will transfer the NFT back to the `msg.sender`.
     /// @dev This function can only be called by the original owner of the Sablier NFT
     /// @param tokenId The tokenId of the Sablier NFT to be unstaked
-    function unstake(uint256 tokenId) public onlyStoredStreamOwner(tokenId) {
+    function unstake(uint256 tokenId) public {
+        // Check: if the `msg.sender` is the stored owner of the Sablier Stream
+        if (streamOwner[tokenId] != msg.sender) {
+            revert NotStreamOwner(msg.sender, tokenId);
+        }
+
         // Effect: update the claimable rewards
         updateClaimAmount(tokenId);
 

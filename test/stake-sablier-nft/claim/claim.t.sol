@@ -4,31 +4,27 @@ pragma solidity >=0.8.19;
 import { StakeSablierNFT_Fork_Test } from "../StakeSablierNFT.t.sol";
 
 contract Claim_Test is StakeSablierNFT_Fork_Test {
-    /*//////////////////////////////////////////////////////////////////////////
-                                claimWhenStaked TEST
-    //////////////////////////////////////////////////////////////////////////*/
-
     modifier givenStaked() {
         stakingContract.stake(existingStreamId);
         _;
     }
 
-    function test_RevertWhen_CallerNotStaker() external givenStaked {
+    function test_RevertWhen_CallerUnauthorized() external givenStaked {
         address unauthorizedCaller = makeAddr("Unauthorized");
         // Change the caller to an unauthorized address
         vm.startPrank({ msgSender: unauthorizedCaller });
 
         vm.expectRevert(abi.encodeWithSelector(NotStreamOwner.selector, unauthorizedCaller, existingStreamId));
-        stakingContract.claimWhenStaked(existingStreamId);
+        stakingContract.claim(existingStreamId);
     }
 
-    modifier whenCallerIsStaker() {
+    modifier whenAuthorizedCaller() {
         _;
     }
 
-    function test_RevertWhen_ClaimAmountZero() external whenCallerIsStaker givenStaked {
+    function test_RevertWhen_ClaimAmountZero() external whenAuthorizedCaller givenStaked {
         vm.expectRevert(abi.encodeWithSelector(ZeroAmount.selector));
-        stakingContract.claimWhenStaked(existingStreamId);
+        stakingContract.claim(existingStreamId);
     }
 
     modifier whenClaimAmountNotZero() {
@@ -37,7 +33,7 @@ contract Claim_Test is StakeSablierNFT_Fork_Test {
 
     function test_RevertWhen_ContractBalanceIsLessThanClaimAmount()
         external
-        whenCallerIsStaker
+        whenAuthorizedCaller
         whenClaimAmountNotZero
         givenStaked
     {
@@ -60,7 +56,7 @@ contract Claim_Test is StakeSablierNFT_Fork_Test {
         vm.expectRevert(abi.encodeWithSelector(ClaimAmountExceedsBalance.selector, expectedReward, balance));
 
         // Claim rewards
-        stakingContract.claimWhenStaked(existingStreamId);
+        stakingContract.claim(existingStreamId);
     }
 
     modifier whenContractBalanceIsNotLessThanClaimAmount() {
@@ -69,7 +65,7 @@ contract Claim_Test is StakeSablierNFT_Fork_Test {
 
     function test_Claim_GivenStaked()
         external
-        whenCallerIsStaker
+        whenAuthorizedCaller
         whenClaimAmountNotZero
         whenContractBalanceIsNotLessThanClaimAmount
         givenStaked
@@ -96,15 +92,11 @@ contract Claim_Test is StakeSablierNFT_Fork_Test {
         emit Transfer(address(stakingContract), staker, expectedReward);
 
         // Claim rewards
-        stakingContract.claimWhenStaked(existingStreamId);
+        stakingContract.claim(existingStreamId);
 
         // Assert: staker received the staking rewards
         assertEq(stakingContract.stakingRewards(existingStreamId), 0);
     }
-
-    /*//////////////////////////////////////////////////////////////////////////
-                                claimWhenUnstaked TEST
-    //////////////////////////////////////////////////////////////////////////*/
 
     modifier givenUnstaked() {
         stakingContract.stake(existingStreamId);
@@ -116,25 +108,16 @@ contract Claim_Test is StakeSablierNFT_Fork_Test {
         _;
     }
 
-    function test_RevertWhen_CallerNotRecipient() external givenUnstaked {
-        address unauthorizedCaller = makeAddr("Unauthorized");
-        // Change the caller to an unauthorized address
-        vm.startPrank({ msgSender: unauthorizedCaller });
-
-        vm.expectRevert(abi.encodeWithSelector(NotStreamOwner.selector, unauthorizedCaller, existingStreamId));
-        stakingContract.claimWhenUnstaked(existingStreamId);
-    }
-
     modifier whenCallerIsRecipient() {
         _;
     }
 
     function test_RevertWhen_ClaimAmountZero_GivenUnstaked() external whenCallerIsRecipient givenUnstaked {
         // claim rewards so that claim amount becomes zero
-        stakingContract.claimWhenUnstaked(existingStreamId);
+        stakingContract.claim(existingStreamId);
 
         vm.expectRevert(abi.encodeWithSelector(ZeroAmount.selector));
-        stakingContract.claimWhenUnstaked(existingStreamId);
+        stakingContract.claim(existingStreamId);
     }
 
     function test_Claim_GivenUnstaked()
@@ -162,7 +145,7 @@ contract Claim_Test is StakeSablierNFT_Fork_Test {
         emit Transfer(address(stakingContract), staker, expectedReward);
 
         // Claim rewards
-        stakingContract.claimWhenUnstaked(existingStreamId);
+        stakingContract.claim(existingStreamId);
 
         // Assert: staker received the staking rewards
         assertEq(stakingContract.stakingRewards(existingStreamId), 0);

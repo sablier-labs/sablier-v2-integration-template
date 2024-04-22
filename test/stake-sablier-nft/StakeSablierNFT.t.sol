@@ -10,8 +10,7 @@ import { StakeSablierNFT } from "src/StakeSablierNFT.sol";
 abstract contract StakeSablierNFT_Fork_Test is Test {
     // Errors
     error ClaimAmountExceedsBalance(uint256 claimAmount, uint256 balance);
-    error NotAuthorized(uint256);
-    error NotStaked(uint256);
+    error InvalidToken(IERC20 streamingToken, IERC20 rewardToken);
     error NotStreamOwner(address, uint256);
     error ZeroAmount();
 
