@@ -51,6 +51,18 @@ contract StakeSablierNFT is Adminable {
     mapping(uint256 tokenId => address owner) public streamOwner;
 
     /*//////////////////////////////////////////////////////////////////////////
+                                     MODIFIERS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    modifier onlyStreamOwner(uint256 tokenId) {
+        // Check: if the `msg.sender` is the stored owner of the Sablier Stream
+        if (streamOwner[tokenId] != msg.sender) {
+            revert NotStreamOwner(msg.sender, tokenId);
+        }
+        _;
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
                                      CONSTRUCTOR
     //////////////////////////////////////////////////////////////////////////*/
 
@@ -71,44 +83,35 @@ contract StakeSablierNFT is Adminable {
     /// @notice Stake a Sablier NFT with specified base asset
     /// @dev The `msg.sender` must approve the staking contract to spend the Sablier NFT before calling this function
     /// @param tokenId The tokenId of the Sablier NFT to be staked
-    function stake(uint256 tokenId) external {
-        address caller = msg.sender;
-
+    function stake(uint256 tokenId) public {
         // Check: if the Sablier NFT was minted with the staking asset
         if (SABLIER_CONTRACT.getAsset(tokenId) != REWARD_TOKEN) {
             revert NotAuthorized(tokenId);
         }
 
-        // Check: if the Sablier NFT is owned by the caller
-        if (SABLIER_CONTRACT.getRecipient(tokenId) != caller) {
-            revert NotStreamOwner(caller, tokenId);
+        // Check: if the Sablier NFT is owned by the `msg.sender`
+        if (SABLIER_CONTRACT.getRecipient(tokenId) != msg.sender) {
+            revert NotStreamOwner(msg.sender, tokenId);
         }
 
         // Effect: store the owner of the Sablier NFT
-        streamOwner[tokenId] = caller;
+        streamOwner[tokenId] = msg.sender;
 
         // Effect: set the block timestamp as the last update timestamp for rewards calculation
         lastUpdateTimestamp[tokenId] = block.timestamp;
 
         // Interaction: transfer NFT to the staking contract
-        SABLIER_CONTRACT.transferFrom({ from: caller, to: address(this), tokenId: tokenId });
+        SABLIER_CONTRACT.transferFrom({ from: msg.sender, to: address(this), tokenId: tokenId });
     }
 
-    /// @notice Unstake a Sablier NFT
-    /// @dev Unstaking a Sablier NFT will transfer the NFT back to the `msg.sender`. The rewards will also be
-    /// transferred to the `msg.sender`.
+    /// @notice Unstaking a Sablier NFT will transfer the NFT back to the `msg.sender`. The rewards will also be
+    /// transferred to the `msg.sender`
+    /// @dev This function can only be called by the original owner of the Sablier NFT
     /// @param tokenId The tokenId of the Sablier NFT to be unstaked
-    function unstake(uint256 tokenId) public {
-        address caller = msg.sender;
-
+    function unstake(uint256 tokenId) public onlyStreamOwner(tokenId) {
         // Check: if the Sablier NFT is staked
         if (SABLIER_CONTRACT.getRecipient(tokenId) != address(this)) {
             revert NotStaked(tokenId);
-        }
-
-        // Check: if the `caller` is the stored owner of the Sablier Stream
-        if (streamOwner[tokenId] != caller) {
-            revert NotStreamOwner(caller, tokenId);
         }
 
         // Effect: update the claimable rewards
@@ -121,10 +124,10 @@ contract StakeSablierNFT is Adminable {
         delete streamOwner[tokenId];
 
         // Interaction: transfer stream back to user
-        SABLIER_CONTRACT.transferFrom(address(this), caller, tokenId);
+        SABLIER_CONTRACT.transferFrom(address(this), msg.sender, tokenId);
 
-        // Interaction: transfer rewards to `caller`
-        REWARD_TOKEN.transfer(caller, stakingRewards);
+        // Interaction: transfer rewards to `msg.sender`
+        REWARD_TOKEN.transfer(msg.sender, stakingRewards);
     }
 
     /// @notice Update the claimable rewards for the `tokenId`
@@ -164,9 +167,9 @@ contract StakeSablierNFT is Adminable {
     }
 
     /// @notice Withdraw the claimable rewards for the `tokenId`
-    /// @dev The rewards will be transferred to the original stream owner
+    /// @dev This function can only be called by the original owner of the Sablier NFT
     /// @param tokenId The tokenId of the Sablier NFT to withdraw rewards for
-    function withdrawRewards(uint256 tokenId) external {
+    function withdrawRewards(uint256 tokenId) public onlyStreamOwner(tokenId) {
         // Effect: update the claimable rewards
         uint256 stakingRewards = updateClaimAmount(tokenId);
 
@@ -174,6 +177,6 @@ contract StakeSablierNFT is Adminable {
         claimAmount[tokenId] = 0;
 
         // Interaction: transfer rewards to the original stream owner
-        REWARD_TOKEN.transfer(streamOwner[tokenId], stakingRewards);
+        REWARD_TOKEN.transfer(msg.sender, stakingRewards);
     }
 }
