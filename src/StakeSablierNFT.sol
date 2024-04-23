@@ -7,19 +7,19 @@ import { ISablierV2Lockup } from "@sablier/v2-core/src/interfaces/ISablierV2Lock
 
 /// @title StakeSablierNFT
 /// @notice DISCLAIMER: This template has not been audited and is provided "as is" with no warranties of any kind,
-/// either express or implied. It is intended solely for demonstration purposes on how to build a staking contract
-/// using Sablier NFT. This template should not be used in a production environment. It makes specific assumptions that
-/// may not be applicable to your particular needs.
+/// either express or implied. It is intended solely for demonstration purposes on how to build a staking contract using
+/// Sablier NFT. This template should not be used in a production environment. It makes specific assumptions that may
+/// not be applicable to your particular needs.
 /// @dev This template allows users to stake Sablier NFTs and earn staking rewards.
 ///
-///   Requirements:
-///     - The Sablier NFT must be transferrable.
+/// Requirements:
+///   - The Sablier NFT must be transferrable.
 ///
-///  Risks:
-///     - The sender MUST NOT call `withdraw()` for staked NFTs. If the sender calls `withdraw()` for staked NFTs, the
-/// funds will be sent to the staking contract and will be locked forever.
-///     - The sender MUST NOT cancel the stream for staked NFTs. If the sender cancels the stream for staked NFTs, the
-/// rewards calculation will not account for unvested tokens.
+/// Risks:
+///   - The sender MUST NOT call `withdraw()` for staked NFTs. If the sender calls `withdraw()` for staked NFTs, the
+///     funds will be sent to the staking contract and will be locked forever.
+///   - The sender MUST NOT cancel the stream for staked NFTs. If the sender cancels the stream for staked NFTs, the
+///     rewards calculation will not account for unvested tokens.
 contract StakeSablierNFT is Adminable {
     /*//////////////////////////////////////////////////////////////////////////
                                        ERRORS
@@ -27,8 +27,8 @@ contract StakeSablierNFT is Adminable {
 
     error ClaimAmountExceedsBalance(uint256 claimAmount, uint256 balance);
     error InvalidToken(IERC20 streamingToken, IERC20 rewardToken);
-    error NotStaked(uint256 tokenId);
     error NotAuthorized(address account, uint256 tokenId);
+    error NotStaked(uint256 tokenId);
     error ZeroAmount();
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -55,15 +55,15 @@ contract StakeSablierNFT is Adminable {
     IERC20 public immutable REWARD_TOKEN;
 
     /// @dev This should be the Sablier Lockup contract.
-    //    - If you used Lockup Linear, you should use the LockupLinear contract address.
-    //    - If you used Lockup Dynamic, you should use the LockupDynamic contract address.
+    ///   - If you used Lockup Linear, you should use the LockupLinear contract address.
+    ///   - If you used Lockup Dynamic, you should use the LockupDynamic contract address.
     ISablierV2Lockup public immutable SABLIER_CONTRACT;
-
-    /// @dev Available staking rewards to claim mapped by tokenId.
-    mapping(uint256 tokenId => uint256 amount) public stakingRewards;
 
     /// @dev The last timestamp when rewards were updated mapped by tokenId.
     mapping(uint256 tokenId => uint256 timestamp) public lastUpdateTimestamp;
+
+    /// @dev Available staking rewards to claim mapped by tokenId.
+    mapping(uint256 tokenId => uint256 amount) public stakingRewards;
 
     /// @dev The owner of the Sablier stream mapped by tokenId.
     mapping(uint256 tokenId => address owner) public streamOwner;
@@ -73,8 +73,8 @@ contract StakeSablierNFT is Adminable {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Check:
-    //   - if NFT is staked, `msg.sender` must be the stored owner of the Sablier Stream
-    //   - if NFT is not staked, `msg.sender` must be the recipient of the Sablier NFT
+    ///   - if NFT is staked, `msg.sender` must be the stored owner of the Sablier Stream
+    ///   - if NFT is not staked, `msg.sender` must be the recipient of the Sablier NFT
     modifier isCallerAuthorized(uint256 tokenId) {
         if (msg.sender != streamOwner[tokenId] && msg.sender != SABLIER_CONTRACT.getRecipient(tokenId)) {
             revert NotAuthorized(msg.sender, tokenId);

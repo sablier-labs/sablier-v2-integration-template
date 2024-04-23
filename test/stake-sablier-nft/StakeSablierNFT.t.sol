@@ -11,8 +11,8 @@ abstract contract StakeSablierNFT_Fork_Test is Test {
     // Errors
     error ClaimAmountExceedsBalance(uint256 claimAmount, uint256 balance);
     error InvalidToken(IERC20 streamingToken, IERC20 rewardToken);
-    error NotStaked(uint256 tokenId);
     error NotAuthorized(address, uint256);
+    error NotStaked(uint256 tokenId);
     error ZeroAmount();
 
     // Events
@@ -33,9 +33,9 @@ abstract contract StakeSablierNFT_Fork_Test is Test {
     // Get the latest deployment address from the docs: https://docs.sablier.com/contracts/v2/deployments
     ISablierV2LockupLinear internal sablier = ISablierV2LockupLinear(0xAFb979d9afAd1aD27C5eFf4E27226E3AB9e5dCC9);
 
-    StakeSablierNFT internal stakingContract;
-
     address internal staker;
+
+    StakeSablierNFT internal stakingContract;
 
     // Token used for creating streams as well as to distribute rewards
     IERC20 internal token = IERC20(0x686f2404e77Ab0d9070a46cdfb0B7feCDD2318b0);
