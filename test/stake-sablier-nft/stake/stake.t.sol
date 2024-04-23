@@ -4,21 +4,21 @@ pragma solidity >=0.8.19;
 import { StakeSablierNFT_Fork_Test } from "../StakeSablierNFT.t.sol";
 
 contract Stake_Test is StakeSablierNFT_Fork_Test {
-    function test_RevertWhen_CallerNotStreamOwner() external {
+    function test_RevertWhen_CallerNotAuthorized() external {
         address unauthorizedCaller = makeAddr("Unauthorized");
 
         // Change the caller to an unauthorized address
         vm.startPrank({ msgSender: unauthorizedCaller });
 
-        vm.expectRevert(abi.encodeWithSelector(NotStreamOwner.selector, unauthorizedCaller, existingStreamId));
+        vm.expectRevert(abi.encodeWithSelector(NotAuthorized.selector, unauthorizedCaller, existingStreamId));
         stakingContract.stake(existingStreamId);
     }
 
-    modifier whenCallerIsStreamOwner() {
+    modifier whenCallerIsAuthorized() {
         _;
     }
 
-    function test_RevertWhen_StreamingTokenIsNotRewardToken() external whenCallerIsStreamOwner {
+    function test_RevertWhen_StreamingTokenIsNotRewardToken() external whenCallerIsAuthorized {
         // Use a stream ID with different streaming asset
         existingStreamId = 1000;
 
@@ -38,7 +38,7 @@ contract Stake_Test is StakeSablierNFT_Fork_Test {
         _;
     }
 
-    function test_Stake() external whenCallerIsStreamOwner whenStreamingTokenIsRewardToken {
+    function test_Stake() external whenCallerIsAuthorized whenStreamingTokenIsRewardToken {
         // Expect emit
         vm.expectEmit({ emitter: address(stakingContract) });
         emit Staked(staker, existingStreamId);

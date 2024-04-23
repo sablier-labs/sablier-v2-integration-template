@@ -4,25 +4,30 @@ pragma solidity >=0.8.19;
 import { StakeSablierNFT_Fork_Test } from "../StakeSablierNFT.t.sol";
 
 contract Unstake_Test is StakeSablierNFT_Fork_Test {
+    function test_RevertWhen_CallerNotAuthorized() external {
+        address unauthorizedCaller = makeAddr("Unauthorized");
+        // Change the caller to an unauthorized address
+        vm.startPrank({ msgSender: unauthorizedCaller });
+
+        vm.expectRevert(abi.encodeWithSelector(NotAuthorized.selector, unauthorizedCaller, existingStreamId));
+        stakingContract.unstake(existingStreamId);
+    }
+
+    modifier whenCallerIsAuthorized() {
+        _;
+    }
+
+    function test_RevertWhen_NotStaked() external whenCallerIsAuthorized {
+        vm.expectRevert(abi.encodeWithSelector(NotStaked.selector, existingStreamId));
+        stakingContract.unstake(existingStreamId);
+    }
+
     modifier givenStaked() {
         stakingContract.stake(existingStreamId);
         _;
     }
 
-    function test_RevertWhen_CallerNotStaker() external givenStaked {
-        address unauthorizedCaller = makeAddr("Unauthorized");
-        // Change the caller to an unauthorized address
-        vm.startPrank({ msgSender: unauthorizedCaller });
-
-        vm.expectRevert(abi.encodeWithSelector(NotStreamOwner.selector, unauthorizedCaller, existingStreamId));
-        stakingContract.unstake(existingStreamId);
-    }
-
-    modifier whenCallerIsStaker() {
-        _;
-    }
-
-    function test_Unstake() external whenCallerIsStaker givenStaked {
+    function test_Unstake() external whenCallerIsAuthorized givenStaked {
         // Move the time forward by 1000 seconds
         vm.warp(block.timestamp + 1000 seconds);
 

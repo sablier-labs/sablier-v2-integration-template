@@ -11,7 +11,8 @@ abstract contract StakeSablierNFT_Fork_Test is Test {
     // Errors
     error ClaimAmountExceedsBalance(uint256 claimAmount, uint256 balance);
     error InvalidToken(IERC20 streamingToken, IERC20 rewardToken);
-    error NotStreamOwner(address, uint256);
+    error NotStaked(uint256 tokenId);
+    error NotAuthorized(address, uint256);
     error ZeroAmount();
 
     // Events

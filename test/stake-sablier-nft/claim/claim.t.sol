@@ -4,25 +4,31 @@ pragma solidity >=0.8.19;
 import { StakeSablierNFT_Fork_Test } from "../StakeSablierNFT.t.sol";
 
 contract Claim_Test is StakeSablierNFT_Fork_Test {
-    modifier givenStaked() {
-        stakingContract.stake(existingStreamId);
-        _;
-    }
-
-    function test_RevertWhen_CallerUnauthorized() external givenStaked {
+    function test_RevertWhen_CallerUnauthorized() external {
         address unauthorizedCaller = makeAddr("Unauthorized");
         // Change the caller to an unauthorized address
         vm.startPrank({ msgSender: unauthorizedCaller });
 
-        vm.expectRevert(abi.encodeWithSelector(NotStreamOwner.selector, unauthorizedCaller, existingStreamId));
+        vm.expectRevert(abi.encodeWithSelector(NotAuthorized.selector, unauthorizedCaller, existingStreamId));
         stakingContract.claim(existingStreamId);
     }
 
-    modifier whenAuthorizedCaller() {
+    modifier whenCallerIsAuthorized() {
         _;
     }
 
-    function test_RevertWhen_ClaimAmountZero() external whenAuthorizedCaller givenStaked {
+    modifier givenStaked() {
+        stakingContract.stake(existingStreamId);
+
+        // Advance time in the future
+        vm.warp(block.timestamp + 1 weeks);
+        _;
+    }
+
+    function test_RevertWhen_ClaimAmountZero() external whenCallerIsAuthorized givenStaked {
+        // claim rewards so that claim amount becomes zero
+        stakingContract.claim(existingStreamId);
+
         vm.expectRevert(abi.encodeWithSelector(ZeroAmount.selector));
         stakingContract.claim(existingStreamId);
     }
@@ -33,7 +39,7 @@ contract Claim_Test is StakeSablierNFT_Fork_Test {
 
     function test_RevertWhen_ContractBalanceIsLessThanClaimAmount()
         external
-        whenAuthorizedCaller
+        whenCallerIsAuthorized
         whenClaimAmountNotZero
         givenStaked
     {
@@ -45,7 +51,7 @@ contract Claim_Test is StakeSablierNFT_Fork_Test {
         } else {
             tokensInStream = sablier.getDepositedAmount(existingStreamId) - sablier.getWithdrawnAmount(existingStreamId);
         }
-        uint256 expectedReward = (tokensInStream * 52 * 7 * 24 * 3600 * rewardRate) / 1e18;
+        uint256 expectedReward = (tokensInStream * 53 * 7 * 24 * 3600 * rewardRate) / 1e18;
 
         // Advance time in the future
         vm.warp(block.timestamp + 52 weeks);
@@ -65,7 +71,7 @@ contract Claim_Test is StakeSablierNFT_Fork_Test {
 
     function test_Claim_GivenStaked()
         external
-        whenAuthorizedCaller
+        whenCallerIsAuthorized
         whenClaimAmountNotZero
         whenContractBalanceIsNotLessThanClaimAmount
         givenStaked
@@ -78,7 +84,7 @@ contract Claim_Test is StakeSablierNFT_Fork_Test {
         } else {
             tokensInStream = sablier.getDepositedAmount(existingStreamId) - sablier.getWithdrawnAmount(existingStreamId);
         }
-        uint256 expectedReward = (tokensInStream * 7 * 24 * 3600 * rewardRate) / 1e18;
+        uint256 expectedReward = (tokensInStream * 14 * 24 * 3600 * rewardRate) / 1e18;
 
         // Advance time in the future
         vm.warp(block.timestamp + 1 weeks);
@@ -108,11 +114,7 @@ contract Claim_Test is StakeSablierNFT_Fork_Test {
         _;
     }
 
-    modifier whenCallerIsRecipient() {
-        _;
-    }
-
-    function test_RevertWhen_ClaimAmountZero_GivenUnstaked() external whenCallerIsRecipient givenUnstaked {
+    function test_RevertWhen_ClaimAmountZero_GivenUnstaked() external whenCallerIsAuthorized givenUnstaked {
         // claim rewards so that claim amount becomes zero
         stakingContract.claim(existingStreamId);
 
@@ -122,7 +124,7 @@ contract Claim_Test is StakeSablierNFT_Fork_Test {
 
     function test_Claim_GivenUnstaked()
         external
-        whenCallerIsRecipient
+        whenCallerIsAuthorized
         whenClaimAmountNotZero
         whenContractBalanceIsNotLessThanClaimAmount
         givenUnstaked

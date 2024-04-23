@@ -1,7 +1,7 @@
 stake.t.sol
-├── when that the sablier NFT is not owned by the caller
+├── when caller is not authorized
 │   └── it should revert
-└── when that the sablier NFT is owned by the caller
+└── when caller is authorized
     ├── when the streaming token is not same as the reward token
     │   └── it should revert
     └── when the streaming token is same as the reward token

@@ -27,7 +27,8 @@ contract StakeSablierNFT is Adminable {
 
     error ClaimAmountExceedsBalance(uint256 claimAmount, uint256 balance);
     error InvalidToken(IERC20 streamingToken, IERC20 rewardToken);
-    error NotStreamOwner(address account, uint256 tokenId);
+    error NotStaked(uint256 tokenId);
+    error NotAuthorized(address account, uint256 tokenId);
     error ZeroAmount();
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -68,6 +69,20 @@ contract StakeSablierNFT is Adminable {
     mapping(uint256 tokenId => address owner) public streamOwner;
 
     /*//////////////////////////////////////////////////////////////////////////
+                                     MODIFIERS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev Check:
+    //   - if NFT is staked, `msg.sender` must be the stored owner of the Sablier Stream
+    //   - if NFT is not staked, `msg.sender` must be the recipient of the Sablier NFT
+    modifier isCallerAuthorized(uint256 tokenId) {
+        if (msg.sender != streamOwner[tokenId] && msg.sender != SABLIER_CONTRACT.getRecipient(tokenId)) {
+            revert NotAuthorized(msg.sender, tokenId);
+        }
+        _;
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
                                      CONSTRUCTOR
     //////////////////////////////////////////////////////////////////////////*/
 
@@ -82,43 +97,36 @@ contract StakeSablierNFT is Adminable {
     }
 
     /*//////////////////////////////////////////////////////////////////////////
+                            USER-FACING CONSTANT FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /// @notice Check if the `tokenId` is staked.
+    /// @param tokenId The tokenId of the Sablier NFT.
+    function isStaked(uint256 tokenId) public view returns (bool) {
+        return streamOwner[tokenId] != address(0);
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
                          USER-FACING NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @notice Claim the staking rewards for the `tokenId`.
     /// @dev
-    /// If NFT is staked:
-    ///   - This function should be called by the original owner of the Sablier NFT
-    ///   - The staking rewards are updated before claiming
-    /// If NFT is not staked:
-    ///   - This function should be called by the current recipient of the Sablier NFT
-    ///   - The staking rewards are loaded from storage
+    ///   - If NFT is staked, the staking rewards are updated before claiming
+    ///   - If NFT is not staked, the staking rewards are loaded from storage
     /// @param tokenId The tokenId of the Sablier NFT to withdraw rewards for
-    function claim(uint256 tokenId) public {
-        uint256 claimAmount;
+    function claim(uint256 tokenId) public isCallerAuthorized(tokenId) {
+        // Effect: update and return the claimable rewards
+        uint256 claimAmount = updateClaimAmount(tokenId);
 
-        if (streamOwner[tokenId] == msg.sender) {
-            // Effect: update the claimable rewards since the stream is staked
-            claimAmount = updateClaimAmount(tokenId);
-        } else if (SABLIER_CONTRACT.getRecipient(tokenId) == msg.sender) {
-            // Load the staking rewards from storage since the stream is not staked
-            claimAmount = stakingRewards[tokenId];
-        } else {
-            revert NotStreamOwner(msg.sender, tokenId);
-        }
-
+        // Interaction: claim the rewards
         _claim(claimAmount, tokenId);
     }
 
     /// @notice Stake a Sablier NFT with specified base asset
     /// @dev The `msg.sender` must approve the staking contract to spend the Sablier NFT before calling this function
     /// @param tokenId The tokenId of the Sablier NFT to be staked
-    function stake(uint256 tokenId) public {
-        // Check: if the `msg.sender` is the recipient of the Sablier Stream
-        if (SABLIER_CONTRACT.getRecipient(tokenId) != msg.sender) {
-            revert NotStreamOwner(msg.sender, tokenId);
-        }
-
+    function stake(uint256 tokenId) public isCallerAuthorized(tokenId) {
         // Check: if the Sablier NFT was minted with the staking asset
         IERC20 streamingAsset = IERC20(SABLIER_CONTRACT.getAsset(tokenId));
         if (streamingAsset != REWARD_TOKEN) {
@@ -138,12 +146,11 @@ contract StakeSablierNFT is Adminable {
     }
 
     /// @notice Unstaking a Sablier NFT will transfer the NFT back to the `msg.sender`.
-    /// @dev This function can only be called by the original owner of the Sablier NFT
     /// @param tokenId The tokenId of the Sablier NFT to be unstaked
-    function unstake(uint256 tokenId) public {
-        // Check: if the `msg.sender` is the stored owner of the Sablier Stream
-        if (streamOwner[tokenId] != msg.sender) {
-            revert NotStreamOwner(msg.sender, tokenId);
+    function unstake(uint256 tokenId) public isCallerAuthorized(tokenId) {
+        // Check: if the `tokenId` is staked
+        if (!isStaked(tokenId)) {
+            revert NotStaked(tokenId);
         }
 
         // Effect: update the claimable rewards
@@ -159,7 +166,7 @@ contract StakeSablierNFT is Adminable {
     }
 
     /// @notice Update the claimable rewards for the `tokenId`
-    /// @dev If token Id is not staked, this function returns `claimAmount`
+    /// @dev If token Id is not staked, this function returns `stakingRewards` from storage
     /// @param tokenId The tokenId of the staked Sablier NFT
     /// @return claimAmount The staking rewards available to claim for the `tokenId`
     function updateClaimAmount(uint256 tokenId) public returns (uint256 claimAmount) {
@@ -204,6 +211,7 @@ contract StakeSablierNFT is Adminable {
                          INTERNAL NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
+    /// @dev Internal function to claim the staking rewards for the `tokenId`
     function _claim(uint256 claimAmount, uint256 tokenId) internal {
         if (claimAmount == 0) {
             revert ZeroAmount();
