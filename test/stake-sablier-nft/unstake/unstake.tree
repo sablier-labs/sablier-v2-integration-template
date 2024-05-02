@@ -1,11 +1,8 @@
 unstake.t.sol
-├── when the caller is not authorized
+├── when the caller is not the staker
 │   └── it should revert
-└── when the caller is authorized
-    ├── given the sablier NFT is not staked
-    │   └── it should revert
-    └── given the sablier NFT is staked
-        ├── it should transfer the sablier NFT to the caller
-        ├── it should delete streamOwner
-        ├── it should update claim amount
-        └── it should emit a {Unstaked} event
+└── when the caller is the staker
+     ├── it should transfer the sablier NFT to the caller
+     ├── it should delete streamOwner and stakedTokenId
+     ├── it should update storage variables
+     └── it should emit a {Unstaked} event

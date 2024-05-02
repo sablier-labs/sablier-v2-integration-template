@@ -4,21 +4,7 @@ pragma solidity >=0.8.19;
 import { StakeSablierNFT_Fork_Test } from "../StakeSablierNFT.t.sol";
 
 contract Stake_Test is StakeSablierNFT_Fork_Test {
-    function test_RevertWhen_CallerNotAuthorized() external {
-        address unauthorizedCaller = makeAddr("Unauthorized");
-
-        // Change the caller to an unauthorized address
-        vm.startPrank({ msgSender: unauthorizedCaller });
-
-        vm.expectRevert(abi.encodeWithSelector(NotAuthorized.selector, unauthorizedCaller, existingStreamId));
-        stakingContract.stake(existingStreamId);
-    }
-
-    modifier whenCallerIsAuthorized() {
-        _;
-    }
-
-    function test_RevertWhen_StreamingTokenIsNotRewardToken() external whenCallerIsAuthorized {
+    function test_RevertWhen_StreamingAssetIsNotRewardAsset() external {
         // Use a stream ID with different streaming asset
         existingStreamId = 1000;
 
@@ -30,24 +16,28 @@ contract Stake_Test is StakeSablierNFT_Fork_Test {
         // Change the caller to the staker again
         vm.startPrank({ msgSender: staker });
 
-        vm.expectRevert(abi.encodeWithSelector(InvalidToken.selector, sablier.getAsset(existingStreamId), token));
+        vm.expectRevert(abi.encodeWithSelector(DifferentStreamingAsset.selector, existingStreamId, rewardToken));
         stakingContract.stake(existingStreamId);
     }
 
-    modifier whenStreamingTokenIsRewardToken() {
+    modifier whenStreamingAssetIsRewardAsset() {
         _;
     }
 
-    function test_Stake() external whenCallerIsAuthorized whenStreamingTokenIsRewardToken {
-        // Expect emit
+    function test_Stake() external whenStreamingAssetIsRewardAsset {
+        // Expect {Staked} evenet to be emitted
         vm.expectEmit({ emitter: address(stakingContract) });
         emit Staked(staker, existingStreamId);
 
         // Stake the NFT
         stakingContract.stake(existingStreamId);
 
-        // Assertions
+        // Assertions: NFT has been transferred to the staking contract
         assertEq(sablier.ownerOf(existingStreamId), address(stakingContract));
-        assertEq(stakingContract.streamOwner(existingStreamId), staker);
+
+        // Assertions: storage variables
+        assertEq(stakingContract.stakedAssets(existingStreamId), staker);
+        assertEq(stakingContract.stakedTokenId(staker), existingStreamId);
+        assertEq(stakingContract.totalERC20StakedSupply(), tokenAmountsInStream);
     }
 }

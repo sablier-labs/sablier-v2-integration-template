@@ -9,7 +9,7 @@ contract Unstake_Test is StakeSablierNFT_Fork_Test {
         // Change the caller to an unauthorized address
         vm.startPrank({ msgSender: unauthorizedCaller });
 
-        vm.expectRevert(abi.encodeWithSelector(NotAuthorized.selector, unauthorizedCaller, existingStreamId));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, unauthorizedCaller, existingStreamId));
         stakingContract.unstake(existingStreamId);
     }
 
@@ -17,42 +17,32 @@ contract Unstake_Test is StakeSablierNFT_Fork_Test {
         _;
     }
 
-    function test_RevertWhen_NotStaked() external whenCallerIsAuthorized {
-        vm.expectRevert(abi.encodeWithSelector(NotStaked.selector, existingStreamId));
-        stakingContract.unstake(existingStreamId);
-    }
-
     modifier givenStaked() {
         stakingContract.stake(existingStreamId);
+        vm.warp(block.timestamp + 1 days);
         _;
     }
 
     function test_Unstake() external whenCallerIsAuthorized givenStaked {
-        // Move the time forward by 1000 seconds
-        vm.warp(block.timestamp + 1000 seconds);
-
-        // Expect {Unstaked} event to be emitted by the staking contract
+        // Expect {Unstaked} event to be emitted
         vm.expectEmit({ emitter: address(stakingContract) });
         emit Unstaked(staker, existingStreamId);
 
         // Unstake the NFT
         stakingContract.unstake(existingStreamId);
 
-        // Assert: staker is the new owner of the NFT
+        // Assert: NFT has been transferred
         assertEq(sablier.ownerOf(existingStreamId), staker);
 
-        // Assert: `streamOwner` has been deleted from storage
-        assertEq(stakingContract.streamOwner(existingStreamId), address(0));
+        // Assert: `stakedAssets` and `stakedTokenId` have been deleted from storage
+        assertEq(stakingContract.stakedAssets(existingStreamId), address(0));
+        assertEq(stakingContract.stakedTokenId(staker), 0);
 
-        // Assert: `claimAmount` equals expected amount
-        uint256 tokensInStream;
-        if (sablier.isCancelable(existingStreamId)) {
-            tokensInStream =
-                sablier.withdrawableAmountOf(existingStreamId) + sablier.refundableAmountOf(existingStreamId);
-        } else {
-            tokensInStream = sablier.getDepositedAmount(existingStreamId) - sablier.getWithdrawnAmount(existingStreamId);
-        }
-        uint256 expectedReward = (tokensInStream * 1000 * rewardRate) / 1e18;
-        assertEq(stakingContract.stakingRewards(existingStreamId), expectedReward);
+        // Assert: `totalERC20StakedSupply` has been updated
+        assertEq(stakingContract.totalERC20StakedSupply(), 0);
+
+        // Assert: reward amount equals expected amount
+        uint256 expectedReward = 1 days * stakingContract.rewardRate();
+        assertApproxEqAbs(stakingContract.calculateRewards(staker), expectedReward, 0.0001e18);
     }
 }

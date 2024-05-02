@@ -1,10 +1,7 @@
 stake.t.sol
-├── when caller is not authorized
+├── when the streaming token is not same as the reward token
 │   └── it should revert
-└── when caller is authorized
-    ├── when the streaming token is not same as the reward token
-    │   └── it should revert
-    └── when the streaming token is same as the reward token
-        ├── it should transfer the sablier NFT from the caller to the staking contract
-        ├── it should update streamOwner
-        └── it should emit a {Staked} event
+└── when the streaming token is same as the reward token
+    ├── it should transfer the sablier NFT from the caller to the staking contract
+    ├── it should update storage variables
+    └── it should emit a {Staked} event
