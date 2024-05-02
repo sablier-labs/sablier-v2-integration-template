@@ -19,6 +19,7 @@ import { ISablierV2Lockup } from "@sablier/v2-core/src/interfaces/ISablierV2Lock
 /// https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol
 ///
 /// Assumptions:
+///   - The staking contract supports only one type of stream at a time, either Lockup Dynamic or Lockup Linear.
 ///   - The Sablier NFT must be transferrable.
 ///   - The Sablier NFT must be non-cancelable.
 ///   - One user can only stake one NFT at a time.
