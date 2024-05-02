@@ -28,20 +28,20 @@ import { ISablierV2Lockup } from "@sablier/v2-core/src/interfaces/ISablierV2Lock
 /// streams.
 ///   If the stream is not cancelable:
 ///     - the tokens in the stream are the difference between the amount deposited and the amount withdrawn
-///         amountInStream = sablierContract.getDepositedAmount(tokenId) - sablierContract.getWithdrawnAmount(tokenId);
+///         amountInStream = sablierLockup.getDepositedAmount(tokenId) - sablierLockup.getWithdrawnAmount(tokenId);
 ///
 ///   If the stream is cancelable:
 ///     - If not canceled, the tokens in the stream are the sum of amount available to withdraw and the amount that
 ///       can be refunded to the sender:
 ///
-///         amountInStream = sablierContract.withdrawableAmountOf(tokenId) +
-/// sablierContract.refundableAmountOf(tokenId);
+///         amountInStream = sablierLockup.withdrawableAmountOf(tokenId) +
+/// sablierLockup.refundableAmountOf(tokenId);
 ///
 ///     - If canceled, the tokens in the stream are the difference between the amount deposited, the amount
 ///       withdrawn and the amount refunded.
 ///
-///         amountInStream = sablierContract.getDepositedAmount(tokenId) - sablierContract.getWithdrawnAmount(tokenId) -
-/// sablierContract.getRefundedAmount(tokenId);
+///         amountInStream = sablierLockup.getDepositedAmount(tokenId) - sablierLockup.getWithdrawnAmount(tokenId) -
+/// sablierLockup.getRefundedAmount(tokenId);
 contract StakeSablierNFT is Adminable, ERC721Holder {
     using SafeERC20 for IERC20;
 
@@ -72,19 +72,14 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
                                 USER-FACING STORAGE
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev This should be your own ERC20 token in which the staking rewards will be distributed.
-    IERC20 public immutable rewardERC20Token;
-
-    /// @dev This should be the Sablier Lockup contract.
-    ///   - If you used Lockup Linear, you should use the LockupLinear contract address.
-    ///   - If you used Lockup Dynamic, you should use the LockupDynamic contract address.
-    ISablierV2Lockup public immutable sablierContract;
-
     /// @dev The last time when rewards were updated.
     uint256 public lastUpdateTime;
 
     /// @dev The timestamp when the staking ends.
     uint256 public periodFinish;
+
+    /// @dev This should be your own ERC20 token in which the staking rewards will be distributed.
+    IERC20 public rewardERC20Token;
 
     /// @dev Earned rewards for each account.
     mapping(address account => uint256 earned) public rewards;
@@ -97,6 +92,11 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
 
     /// @dev Duration for which staking is live.
     uint256 public rewardsDuration;
+
+    /// @dev This should be the Sablier Lockup contract.
+    ///   - If you used Lockup Linear, you should use the LockupLinear contract address.
+    ///   - If you used Lockup Dynamic, you should use the LockupDynamic contract address.
+    ISablierV2Lockup public sablierLockup;
 
     /// @dev The owner of the streams mapped by tokenId.
     mapping(uint256 tokenId => address account) public stakedAssets;
@@ -132,11 +132,11 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
 
     /// @param initialAdmin The address of the initial contract admin.
     /// @param rewardERC20Token_ the address of the ERC20 token used for rewards
-    /// @param sablierContract_ the address of the ERC721 Contract
-    constructor(address initialAdmin, IERC20 rewardERC20Token_, ISablierV2Lockup sablierContract_) {
+    /// @param sablierLockup_ the address of the ERC721 Contract
+    constructor(address initialAdmin, IERC20 rewardERC20Token_, ISablierV2Lockup sablierLockup_) {
         admin = initialAdmin;
         rewardERC20Token = rewardERC20Token_;
-        sablierContract = sablierContract_;
+        sablierLockup = sablierLockup_;
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -208,7 +208,7 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
     /// @dev This function transfers `amount` to the original staker.
     function onStreamWithdrawn(uint256 streamId, address, address, uint128 amount) external {
         // Check: the caller is the lockup contract
-        if (msg.sender != address(sablierContract)) {
+        if (msg.sender != address(sablierLockup)) {
             revert UnauthorizedCaller(msg.sender, streamId);
         }
 
@@ -229,7 +229,7 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
     /// @param tokenId The tokenId of the Sablier NFT to be staked
     function stake(uint256 tokenId) external updateReward(msg.sender) {
         // Check: the Sablier NFT is streaming the staking asset
-        if (sablierContract.getAsset(tokenId) != rewardERC20Token) {
+        if (sablierLockup.getAsset(tokenId) != rewardERC20Token) {
             revert DifferentStreamingAsset(tokenId, rewardERC20Token);
         }
 
@@ -248,7 +248,7 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
         totalERC20StakedSupply += _getAmountInStream(tokenId);
 
         // Interaction: transfer NFT to the staking contract
-        sablierContract.safeTransferFrom({ from: msg.sender, to: address(this), tokenId: tokenId });
+        sablierLockup.safeTransferFrom({ from: msg.sender, to: address(this), tokenId: tokenId });
 
         emit Staked(msg.sender, tokenId);
     }
@@ -271,7 +271,7 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
         totalERC20StakedSupply -= _getAmountInStream(tokenId);
 
         // Interaction: transfer stream back to user
-        sablierContract.safeTransferFrom(address(this), msg.sender, tokenId);
+        sablierLockup.safeTransferFrom(address(this), msg.sender, tokenId);
 
         emit Unstaked(msg.sender, tokenId);
     }
@@ -331,6 +331,6 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
     /// @notice function to get the amount of tokens in the stream.
     /// @dev The following function only applied to non-cancelable streams.
     function _getAmountInStream(uint256 tokenId) internal view returns (uint256 amount) {
-        return sablierContract.getDepositedAmount(tokenId) - sablierContract.getWithdrawnAmount(tokenId);
+        return sablierLockup.getDepositedAmount(tokenId) - sablierLockup.getWithdrawnAmount(tokenId);
     }
 }

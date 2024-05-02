@@ -1,5 +1,5 @@
-// // SPDX-License-Identifier: GPL-3.0-or-later
-// pragma solidity >=0.8.19;
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity >=0.8.19;
 
 // import { StakeSablierNFT_Fork_Test } from "../StakeSablierNFT.t.sol";
 

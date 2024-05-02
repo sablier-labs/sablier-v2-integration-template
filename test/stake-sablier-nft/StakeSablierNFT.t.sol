@@ -55,9 +55,13 @@ abstract contract StakeSablierNFT_Fork_Test is Test {
         // Make the admin the `msg.sender` in all following calls
         vm.startPrank({ msgSender: admin });
 
+        // Store the token amounts in the stream
+        tokenAmountsInStream =
+            sablier.getDepositedAmount(existingStreamId) - sablier.getWithdrawnAmount(existingStreamId);
+
         // Deploy the staking contract
         stakingContract =
-            new StakeSablierNFT({ initialAdmin: admin, rewardERC20Token_: rewardToken, sablierContract_: sablier });
+            new StakeSablierNFT({ initialAdmin: admin, rewardERC20Token_: rewardToken, sablierLockup_: sablier });
 
         // Fund the staking contract with some reward tokens
         rewardToken.transfer(address(stakingContract), 10_000e18);
@@ -70,9 +74,5 @@ abstract contract StakeSablierNFT_Fork_Test is Test {
 
         // Approve the staking contract to spend the NFT
         sablier.approve(address(stakingContract), existingStreamId);
-
-        // Store the token amounts in the stream
-        tokenAmountsInStream =
-            sablier.getDepositedAmount(existingStreamId) - sablier.getWithdrawnAmount(existingStreamId);
     }
 }
