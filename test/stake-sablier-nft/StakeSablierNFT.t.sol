@@ -9,13 +9,14 @@ import { StakeSablierNFT } from "src/StakeSablierNFT.sol";
 
 abstract contract StakeSablierNFT_Fork_Test is Test {
     // Errors
+    error AlreadyStaking(address account, uint256 tokenId);
     error DifferentStreamingAsset(uint256 tokenId, IERC20 rewardToken);
-    error ERC721IncorrectOwner(address, uint256, address);
     error ProvidedRewardTooHigh();
     error StakingAlreadyActive();
     error UnauthorizedCaller(address account, uint256 tokenId);
+    error ZeroAddress(uint256 tokenId);
     error ZeroAmount();
-    error ZeroRewardsDuration();
+    error ZeroDuration();
 
     // Events
     event RewardAdded(uint256 reward);
@@ -29,6 +30,9 @@ abstract contract StakeSablierNFT_Fork_Test is Test {
 
     // Set an existing stream ID
     uint256 internal existingStreamId = 1253;
+
+    // Reward rate based on the total amount staked
+    uint256 internal rewardRate;
 
     // Token used for creating streams as well as to distribute rewards
     IERC20 internal rewardToken = IERC20(0x686f2404e77Ab0d9070a46cdfb0B7feCDD2318b0);
@@ -66,8 +70,11 @@ abstract contract StakeSablierNFT_Fork_Test is Test {
         // Fund the staking contract with some reward tokens
         rewardToken.transfer(address(stakingContract), 10_000e18);
 
-        //Start the staking period
+        // Start the staking period
         stakingContract.startStakingPeriod(10_000e18, 1 weeks);
+
+        // Set expected reward rate
+        rewardRate = 10_000e18 / uint256(1 weeks);
 
         // Make the stream owner the `msg.sender` in all the subsequent calls
         vm.startPrank({ msgSender: staker });

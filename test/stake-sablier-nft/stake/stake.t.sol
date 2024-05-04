@@ -24,7 +24,20 @@ contract Stake_Test is StakeSablierNFT_Fork_Test {
         _;
     }
 
-    function test_Stake() external whenStreamingAssetIsRewardAsset {
+    function test_RevertWhen_AlreadyStaking() external whenStreamingAssetIsRewardAsset {
+        // Stake the NFT.
+        stakingContract.stake(existingStreamId);
+
+        // Expect {AlreadyStaking} evenet to be emitted
+        vm.expectRevert(abi.encodeWithSelector(AlreadyStaking.selector, staker, stakingContract.stakedTokenId(staker)));
+        stakingContract.stake(existingStreamId);
+    }
+
+    modifier notAlreadyStaking() {
+        _;
+    }
+
+    function test_Stake() external whenStreamingAssetIsRewardAsset notAlreadyStaking {
         // Expect {Staked} evenet to be emitted
         vm.expectEmit({ emitter: address(stakingContract) });
         emit Staked(staker, existingStreamId);
@@ -38,6 +51,13 @@ contract Stake_Test is StakeSablierNFT_Fork_Test {
         // Assertions: storage variables
         assertEq(stakingContract.stakedAssets(existingStreamId), staker);
         assertEq(stakingContract.stakedTokenId(staker), existingStreamId);
+
         assertEq(stakingContract.totalERC20StakedSupply(), tokenAmountsInStream);
+
+        // Assert: `updateReward` has correctly updated the storage variables
+        assertApproxEqAbs(stakingContract.rewards(staker), 0, 0);
+        assertEq(stakingContract.lastUpdateTime(), block.timestamp);
+        assertEq(stakingContract.totalRewardPerERC20TokenPaid(), 0);
+        assertEq(stakingContract.userRewardPerERC20Token(staker), 0);
     }
 }
