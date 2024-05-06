@@ -265,33 +265,9 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
     /// @notice Determine the amount available in the stream.
     /// @dev The following function determines the amounts of tokens in a stream irrespective of its cancelable status.
     function _getAmountInStream(uint256 tokenId) private view returns (uint256 amount) {
-        // Get the `isCancelable` value of the stream
-        bool isCancelable = sablierLockup.isCancelable(tokenId);
-
-        // Get the `wasCanceled` value of the stream
-        bool wasCanceled = sablierLockup.wasCanceled(tokenId);
-
-        // Determine whether the stream was always non-cancelable
-        bool isCancelableOrHasBeenCanceled = isCancelable || wasCanceled;
-
-        // If the stream is always non-cancelable:
-        // the tokens in the stream = amount deposited + amount withdrawn.
-        if (!isCancelableOrHasBeenCanceled) {
-            return sablierLockup.getDepositedAmount(tokenId) - sablierLockup.getWithdrawnAmount(tokenId);
-        } else {
-            // If the stream is cancelable or was cancelable, the tokens in the stream depend on whether the stream has
-            // been canceled or not.
-            if (wasCanceled) {
-                // If the stream has been canceled:
-                // the tokens in the stream = amount deposited - amount withdrawn - amount refunded.
-                return sablierLockup.getDepositedAmount(tokenId) - sablierLockup.getWithdrawnAmount(tokenId)
-                    - sablierLockup.getRefundedAmount(tokenId);
-            } else {
-                // If the stream has not yet been canceled:
-                // the tokens in the stream = amount that can be withdrawn + amount that can be refunded.
-                return sablierLockup.withdrawableAmountOf(tokenId) + sablierLockup.refundableAmountOf(tokenId);
-            }
-        }
+        // the tokens in the stream = amount deposited - amount withdrawn - amount refunded.
+        return sablierLockup.getDepositedAmount(tokenId) - sablierLockup.getWithdrawnAmount(tokenId)
+            - sablierLockup.getRefundedAmount(tokenId);
     }
 
     function _unstake(uint256 tokenId, address account) private {
