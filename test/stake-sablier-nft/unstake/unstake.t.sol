@@ -6,7 +6,7 @@ import { StakeSablierNFT_Fork_Test } from "../StakeSablierNFT.t.sol";
 contract Unstake_Test is StakeSablierNFT_Fork_Test {
     function test_RevertWhen_CallerNotAuthorized() external {
         address unauthorizedCaller = makeAddr("Unauthorized");
-        // Change the caller to an unauthorized address
+        // Change the caller to an unauthorized address.
         vm.startPrank({ msgSender: unauthorizedCaller });
 
         vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, unauthorizedCaller, existingStreamId));
@@ -24,24 +24,24 @@ contract Unstake_Test is StakeSablierNFT_Fork_Test {
     }
 
     function test_Unstake() external whenCallerIsAuthorized givenStaked {
-        // Expect {Unstaked} event to be emitted
+        // Expect {Unstaked} event to be emitted.
         vm.expectEmit({ emitter: address(stakingContract) });
         emit Unstaked(staker, existingStreamId);
 
-        // Unstake the NFT
+        // Unstake the NFT.
         stakingContract.unstake(existingStreamId);
 
-        // Assert: NFT has been transferred
+        // Assert: NFT has been transferred.
         assertEq(sablier.ownerOf(existingStreamId), staker);
 
-        // Assert: `stakedAssets` and `stakedTokenId` have been deleted from storage
+        // Assert: `stakedAssets` and `stakedTokenId` have been deleted from storage.
         assertEq(stakingContract.stakedAssets(existingStreamId), address(0));
         assertEq(stakingContract.stakedTokenId(staker), 0);
 
-        // Assert: `totalERC20StakedSupply` has been updated
+        // Assert: `totalERC20StakedSupply` has been updated.
         assertEq(stakingContract.totalERC20StakedSupply(), 0);
 
-        // Assert: `updateReward` has correctly updated the storage variables
+        // Assert: `updateReward` has correctly updated the storage variables.
         uint256 expectedReward = 1 days * rewardRate;
         assertApproxEqAbs(stakingContract.rewards(staker), expectedReward, 0.0001e18);
         assertEq(stakingContract.lastUpdateTime(), block.timestamp);
