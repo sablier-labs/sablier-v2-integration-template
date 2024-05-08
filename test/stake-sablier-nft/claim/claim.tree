@@ -1,0 +1,20 @@
+claim.t.sol
+├── when caller is not authorized
+│   └── it should revert
+└── when caller is authorized
+    ├── given Sablier NFT is staked
+    │   ├── when the claim amount is zero
+    │   │   └── it should revert
+    │   └── when the claim amount is not zero
+    │       ├── given the balance of staking contracts is less than the claim amount
+    │       │   └── it should revert
+    │       └── given the balance of staking contracts is not less than the claim amount
+    │           ├── it should emit {ClaimAmountUpdated} event
+    │           ├── it should set staking rewards to zero
+    │           └── it should emit {Transfer} event
+    └── given Sablier NFT has been unstaked
+        ├── when the claim amount is zero
+        │   └── it should revert
+        └── when the claim amount is not zero
+            ├── it should set staking rewards to zero
+            └── it should emit {Transfer} event
