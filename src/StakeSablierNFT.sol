@@ -20,7 +20,7 @@ import { ISablierV2Lockup } from "@sablier/v2-core/src/interfaces/ISablierV2Lock
 ///
 /// Assumptions:
 ///   - The staking contract supports only one type of stream at a time, either Lockup Dynamic or Lockup Linear.
-///   - The Sablier NFT must be transferrable because staking requires transferring the NFT to the staking contract.
+///   - The Sablier NFT must be transferable because staking requires transferring the NFT to the staking contract.
 ///   - This staking contract assumes that one user can only stake one NFT at a time.
 contract StakeSablierNFT is Adminable, ERC721Holder {
     using SafeERC20 for IERC20;
@@ -49,7 +49,7 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
     event Unstaked(address indexed user, uint256 tokenId);
 
     /*//////////////////////////////////////////////////////////////////////////
-                                USER-FACING STORAGE
+                                USER-FACING STATE
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev The last time when rewards were updated.
@@ -127,14 +127,14 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
     function calculateRewards(address account) public view returns (uint256 earned) {
         if (stakedTokenId[account] == 0) {
             return rewards[account];
-        } else {
-            return (
-                (
-                    _getAmountInStream(stakedTokenId[account])
-                        * (rewardPerERC20Token() - userRewardPerERC20Token[account])
-                ) / 1e18
-            ) + rewards[account];
         }
+
+        uint256 amountInStream = _getAmountInStream(stakedTokenId[account]);
+        uint256 userRewardPerERC20Token_ = userRewardPerERC20Token[account];
+
+        uint256 rewardsSinceLastTime = (amountInStream * (rewardPerERC20Token() - userRewardPerERC20Token_)) / 1e18;
+
+        return rewardsSinceLastTime + rewards[account];
     }
 
     /// @notice Getter function to get the reward per second for each ERC20 tokens staked via Sablier NFT.
@@ -145,14 +145,17 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
     /// @notice Calculates the rewards distributed per ERC20 token whenever a new stake/unstake is made to keep track of
     /// the correct token distribution between stakers.
     function rewardPerERC20Token() public view returns (uint256) {
+        // If the total staked supply is zero, return the stored value of reward per ERC20.
         if (totalERC20StakedSupply == 0) {
-            // If the total staked supply is zero, return the stored value of reward per ERC20.
             return totalRewardPerERC20TokenPaid;
-        } else {
-            // Otherwise, calculate the reward per ERC20 token.
-            return totalRewardPerERC20TokenPaid
-                + (((min(block.timestamp, periodFinish) - lastUpdateTime) * rewardRate * 1e18) / totalERC20StakedSupply);
         }
+
+        uint256 lastRewardsApplicableTime = min(block.timestamp, periodFinish);
+
+        uint256 totalRewardsPerERC20InCurrentPeriod =
+            (((lastRewardsApplicableTime - lastUpdateTime) * rewardRate * 1e18) / totalERC20StakedSupply);
+
+        return totalRewardPerERC20TokenPaid + totalRewardsPerERC20InCurrentPeriod;
     }
 
     /// @notice Function useful for Front End to see the staked NFT and earned rewards.
@@ -200,7 +203,15 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
 
     /// @notice Implements the hook to handle the withdrawn amount if sender calls the withdraw.
     /// @dev This function transfers `amount` to the original staker.
-    function onStreamWithdrawn(uint256 streamId, address, address, uint128 amount) external {
+    function onStreamWithdrawn(
+        uint256 streamId,
+        address,
+        address,
+        uint128 amount
+    )
+        external
+        updateReward(stakedAssets[streamId])
+    {
         // Check: the caller is the lockup contract
         if (msg.sender != address(sablierLockup)) {
             revert UnauthorizedCaller(msg.sender, streamId);
@@ -212,6 +223,9 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
         if (staker == address(0)) {
             revert ZeroAddress(staker);
         }
+
+        // Effect: update the total staked amount.
+        totalERC20StakedSupply -= amount;
 
         // Interaction: transfer the withdrawn amount to the original staker.
         rewardERC20Token.safeTransfer(staker, amount);
