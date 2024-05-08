@@ -57,7 +57,7 @@ contract Stake_Test is StakeSablierNFT_Fork_Test {
         // Assert: `updateReward` has correctly updated the storage variables.
         assertApproxEqAbs(stakingContract.rewards(staker), 0, 0);
         assertEq(stakingContract.lastUpdateTime(), block.timestamp);
-        assertEq(stakingContract.totalRewardPerERC20TokenPaid(), 0);
+        assertEq(stakingContract.totalRewardPaidPerERC20Token(), 0);
         assertEq(stakingContract.userRewardPerERC20Token(staker), 0);
     }
 }

@@ -55,20 +55,14 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
     /// @dev The last time when rewards were updated.
     uint256 public lastUpdateTime;
 
-    /// @dev The timestamp when the staking ends.
-    uint256 public periodFinish;
-
     /// @dev This should be your own ERC20 token in which the staking rewards will be distributed.
     IERC20 public rewardERC20Token;
 
-    /// @dev Earned rewards for each account.
-    mapping(address account => uint256 earned) public rewards;
-
-    /// @dev Keeps track of the rewards distributed divided by total staked supply.
-    uint256 public totalRewardPerERC20TokenPaid;
-
     /// @dev Total rewards to be distributed per second.
     uint256 public rewardRate;
+
+    /// @dev Earned rewards for each account.
+    mapping(address account => uint256 earned) public rewards;
 
     /// @dev Duration for which staking is live.
     uint256 public rewardsDuration;
@@ -84,8 +78,14 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
     /// @dev The staked token ID mapped by each account.
     mapping(address account => uint256 tokenId) public stakedTokenId;
 
+    /// @dev The timestamp when the staking ends.
+    uint256 public stakingEndTime;
+
     /// @dev The total amount of ERC20 tokens staked through Sablier NFTs.
     uint256 public totalERC20StakedSupply;
+
+    /// @dev Keeps track of the total rewards distributed divided by total staked supply.
+    uint256 public totalRewardPaidPerERC20Token;
 
     /// @dev The rewards paid to each account per ERC20 token mapped by the account.
     mapping(address account => uint256 paidAmount) public userRewardPerERC20Token;
@@ -97,10 +97,10 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
     /// @notice Modifier used to keep track of the earned rewards for user each time a `stake`, `unstake` or
     /// `claimRewards` is called.
     modifier updateReward(address account) {
-        totalRewardPerERC20TokenPaid = rewardPerERC20Token();
-        lastUpdateTime = min(block.timestamp, periodFinish);
-        rewards[account] = calculateRewards(account);
-        userRewardPerERC20Token[account] = totalRewardPerERC20TokenPaid;
+        totalRewardPaidPerERC20Token = rewardPaidPerERC20Token();
+        lastUpdateTime = lastTimeRewardsApplicable();
+        rewards[account] = calculateUserRewards(account);
+        userRewardPerERC20Token[account] = totalRewardPaidPerERC20Token;
         _;
     }
 
@@ -124,7 +124,7 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
     /// @notice Calculate the earned rewards for an account.
     /// @param account The address of the account to calculate available rewards for.
     /// @return earned The amount available as rewards for the account.
-    function calculateRewards(address account) public view returns (uint256 earned) {
+    function calculateUserRewards(address account) public view returns (uint256 earned) {
         if (stakedTokenId[account] == 0) {
             return rewards[account];
         }
@@ -132,38 +132,28 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
         uint256 amountInStream = _getAmountInStream(stakedTokenId[account]);
         uint256 userRewardPerERC20Token_ = userRewardPerERC20Token[account];
 
-        uint256 rewardsSinceLastTime = (amountInStream * (rewardPerERC20Token() - userRewardPerERC20Token_)) / 1e18;
+        uint256 rewardsSinceLastTime = (amountInStream * (rewardPaidPerERC20Token() - userRewardPerERC20Token_)) / 1e18;
 
         return rewardsSinceLastTime + rewards[account];
     }
 
-    /// @notice Getter function to get the reward per second for each ERC20 tokens staked via Sablier NFT.
-    function getRewardPerToken() external view returns (uint256 _rewardPerERC20Token) {
-        return rewardRate / totalERC20StakedSupply;
+    /// @notice Get the last time when rewards were applicable
+    function lastTimeRewardsApplicable() public view returns (uint256) {
+        return block.timestamp < stakingEndTime ? block.timestamp : stakingEndTime;
     }
 
-    /// @notice Calculates the rewards distributed per ERC20 token whenever a new stake/unstake is made to keep track of
-    /// the correct token distribution between stakers.
-    function rewardPerERC20Token() public view returns (uint256) {
-        // If the total staked supply is zero, return the stored value of reward per ERC20.
-        if (totalERC20StakedSupply == 0) {
-            return totalRewardPerERC20TokenPaid;
+    /// @notice Calculates the total rewards distributed per ERC20 token.
+    /// @dev This is called by `updateReward` which also update the value of `totalRewardPaidPerERC20Token`.
+    function rewardPaidPerERC20Token() public view returns (uint256) {
+        // If the total staked supply is zero or staking has ended, return the stored value of reward per ERC20.
+        if (totalERC20StakedSupply == 0 || block.timestamp >= stakingEndTime) {
+            return totalRewardPaidPerERC20Token;
         }
 
-        uint256 lastRewardsApplicableTime = min(block.timestamp, periodFinish);
-
         uint256 totalRewardsPerERC20InCurrentPeriod =
-            (((lastRewardsApplicableTime - lastUpdateTime) * rewardRate * 1e18) / totalERC20StakedSupply);
+            ((lastTimeRewardsApplicable() - lastUpdateTime) * rewardRate * 1e18) / totalERC20StakedSupply;
 
-        return totalRewardPerERC20TokenPaid + totalRewardsPerERC20InCurrentPeriod;
-    }
-
-    /// @notice Function useful for Front End to see the staked NFT and earned rewards.
-    /// @param account The address of the account to get informations for.
-    /// @return stakedTokenId_ The Sablier NFT Token ID that is staked by the user.
-    /// @return availableRewards_ The rewards accumulated by the user.
-    function userStakeInfo(address account) public view returns (uint256 stakedTokenId_, uint256 availableRewards_) {
-        return (stakedTokenId[account], calculateRewards(account));
+        return totalRewardPaidPerERC20Token + totalRewardsPerERC20InCurrentPeriod;
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -183,12 +173,12 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
     }
 
     /// @notice Implements the hook to handle the cancelation of the stream.
-    /// @dev This function unstakes the NFT and transfers it back to the original staker.
-    ///   - Similar to `unstake`, this function also updates the rewards for the staker.
+    /// @dev This function subtracts the amount refunded to the sender from `totalERC20StakedSupply`.
+    ///   - This function also updates the rewards for the staker.
     function onStreamCanceled(
         uint256 streamId,
         address,
-        address,
+        uint128 senderAmount,
         uint128
     )
         external
@@ -198,7 +188,9 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
         if (msg.sender != address(sablierLockup)) {
             revert UnauthorizedCaller(msg.sender, streamId);
         }
-        _unstake(streamId, stakedAssets[streamId]);
+
+        // Effect: update the total staked amount.
+        totalERC20StakedSupply -= senderAmount;
     }
 
     /// @notice Implements the hook to handle the withdrawn amount if sender calls the withdraw.
@@ -269,6 +261,9 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
             revert UnauthorizedCaller(msg.sender, tokenId);
         }
 
+        // Effect: update the total staked amount.
+        totalERC20StakedSupply -= _getAmountInStream(tokenId);
+
         _unstake(tokenId, msg.sender);
     }
 
@@ -296,18 +291,10 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
         // Effect: delete the `tokenId` from the user storage.
         delete stakedTokenId[account];
 
-        // Effect: update the total staked amount.
-        totalERC20StakedSupply -= _getAmountInStream(tokenId);
-
         // Interaction: transfer stream back to user.
         sablierLockup.safeTransferFrom(address(this), account, tokenId);
 
         emit Unstaked(account, tokenId);
-    }
-
-    /// @dev Calculated the min of two values.
-    function min(uint256 a, uint256 b) private pure returns (uint256 v) {
-        return a < b ? a : b;
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -331,7 +318,7 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
         }
 
         // Check: the staking period is not already active.
-        if (block.timestamp <= periodFinish) {
+        if (block.timestamp <= stakingEndTime) {
             revert StakingAlreadyActive();
         }
 
@@ -350,8 +337,8 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
         // Effect: update the `lastUpdateTime`.
         lastUpdateTime = block.timestamp;
 
-        // Effect: update the `periodFinish`.
-        periodFinish = block.timestamp + rewardsDuration;
+        // Effect: update the `stakingEndTime`.
+        stakingEndTime = block.timestamp + rewardsDuration;
 
         emit RewardAdded(rewardAmount);
 

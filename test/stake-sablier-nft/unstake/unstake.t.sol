@@ -45,7 +45,7 @@ contract Unstake_Test is StakeSablierNFT_Fork_Test {
         uint256 expectedReward = 1 days * rewardRate;
         assertApproxEqAbs(stakingContract.rewards(staker), expectedReward, 0.0001e18);
         assertEq(stakingContract.lastUpdateTime(), block.timestamp);
-        assertEq(stakingContract.totalRewardPerERC20TokenPaid(), (expectedReward * 1e18) / tokenAmountsInStream);
+        assertEq(stakingContract.totalRewardPaidPerERC20Token(), (expectedReward * 1e18) / tokenAmountsInStream);
         assertEq(stakingContract.userRewardPerERC20Token(staker), (expectedReward * 1e18) / tokenAmountsInStream);
     }
 }
