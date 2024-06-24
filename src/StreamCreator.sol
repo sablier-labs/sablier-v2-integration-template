@@ -6,6 +6,8 @@ import { ud60x18 } from "@prb/math/src/UD60x18.sol";
 import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
 import { Broker, LockupLinear } from "@sablier/v2-core/src/types/DataTypes.sol";
 
+/// @title StreamCreator
+/// @dev This contract allows users to create Sablier streams using the Lockup Linear contract.
 contract StreamCreator {
     IERC20 public constant DAI = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     ISablierV2LockupLinear public immutable SABLIER;
@@ -14,6 +16,8 @@ contract StreamCreator {
         SABLIER = sablier;
     }
 
+    /// @dev Before calling this function, the user must first approve this contract to spend the tokens from the user's
+    /// address.
     function createLockupLinearStream(uint256 totalAmount) external returns (uint256 streamId) {
         // Transfer the provided amount of DAI tokens to this contract
         DAI.transferFrom(msg.sender, address(this), totalAmount);
