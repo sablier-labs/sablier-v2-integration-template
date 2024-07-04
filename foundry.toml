@@ -3,12 +3,12 @@
 [profile.default]
   auto_detect_solc = false
   bytecode_hash = "none"
-  emv_version = "paris"
+  evm_version = "shanghai"
   fuzz = { runs = 1_000 }
   optimizer = true
-  optimizer_runs = 10_000
+  optimizer_runs = 5000
   out = "out"
-  solc = "0.8.23"
+  solc = "0.8.26"
   src = "src"
   test = "test"
 
@@ -23,5 +23,4 @@
   wrap_comments = true
 
 [rpc_endpoints]
-  localhost = "http://localhost:8545"
-  mainnet = "${RPC_URL_MAINNET}"
+  sepolia = "${RPC_URL_SEPOLIA}"

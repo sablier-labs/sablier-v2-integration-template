@@ -10,10 +10,10 @@
     "url": "https://github.com/sablier-labs/sablier-integration-template/issues"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "4.9.2",
-    "@prb/math": "4.0.2",
-    "@sablier/v2-core": "1.1.2",
-    "@sablier/v2-periphery": "1.1.1"
+    "@openzeppelin/contracts": "5.0.2",
+    "@prb/math": "4.0.3",
+    "@sablier/v2-core": "1.2.0",
+    "@sablier/v2-periphery": "1.2.0"
   },
   "devDependencies": {
     "forge-std": "github:foundry-rs/forge-std#v1.8.1",

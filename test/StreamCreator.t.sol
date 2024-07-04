@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity >=0.8.19;
+pragma solidity >=0.8.22;
 
 import { Test } from "forge-std/src/Test.sol";
 import { ISablierV2LockupLinear } from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
@@ -8,7 +8,7 @@ import { StreamCreator } from "../src/StreamCreator.sol";
 
 contract StreamCreatorTest is Test {
     // Get the latest deployment address from the docs: https://docs.sablier.com/contracts/v2/deployments
-    address internal constant SABLIER_ADDRESS = address(0xAFb979d9afAd1aD27C5eFf4E27226E3AB9e5dCC9);
+    address internal constant SABLIER_ADDRESS = address(0x3E435560fd0a03ddF70694b35b673C25c65aBB6C);
 
     // Test contracts
     StreamCreator internal creator;
@@ -17,7 +17,7 @@ contract StreamCreatorTest is Test {
 
     function setUp() public {
         // Fork Ethereum Mainnet
-        vm.createSelectFork({ blockNumber: 18_821_300, urlOrAlias: "mainnet" });
+        vm.createSelectFork({ blockNumber: 6_239_031, urlOrAlias: "sepolia" });
 
         // Load the Sablier contract from Ethereum Mainnet
         sablier = ISablierV2LockupLinear(SABLIER_ADDRESS);
@@ -36,7 +36,7 @@ contract StreamCreatorTest is Test {
         vm.startPrank({ msgSender: user });
 
         // Approve the creator contract to pull DAI tokens from the test user
-        creator.DAI().approve({ spender: address(creator), amount: 1337e18 });
+        creator.DAI().approve({ spender: address(creator), value: 1337e18 });
     }
 
     // Test that creating streams works by checking the stream ids
