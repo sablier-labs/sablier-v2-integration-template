@@ -5,13 +5,10 @@ import { StakeSablierNFT_Fork_Test } from "../StakeSablierNFT.t.sol";
 
 contract Stake_Test is StakeSablierNFT_Fork_Test {
     function test_RevertWhen_StreamingAssetIsNotRewardAsset() external {
-        uint256 streamId = users.bob.streamId;
-
-        // Change the caller to the users.staker again.
         resetPrank({ msgSender: users.bob.addr });
 
-        vm.expectRevert(abi.encodeWithSelector(DifferentStreamingAsset.selector, streamId, DAI));
-        stakingContract.stake(streamId);
+        vm.expectRevert(abi.encodeWithSelector(DifferentStreamingAsset.selector, users.bob.streamId, DAI));
+        stakingContract.stake(users.bob.streamId);
     }
 
     modifier whenStreamingAssetIsRewardAsset() {
@@ -19,47 +16,38 @@ contract Stake_Test is StakeSablierNFT_Fork_Test {
     }
 
     function test_RevertWhen_AlreadyStaking() external whenStreamingAssetIsRewardAsset {
-        uint256 streamId = users.staker.streamId;
+        resetPrank({ msgSender: users.alice.addr });
 
-        // Stake the NFT.
-        stakingContract.stake(streamId);
-
-        // Expect {AlreadyStaking} evenet to be emitted.
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AlreadyStaking.selector, users.staker.addr, stakingContract.stakedTokenId(users.staker.addr)
-            )
-        );
-        stakingContract.stake(streamId);
+        vm.expectRevert(abi.encodeWithSelector(AlreadyStaking.selector, users.alice.addr, users.alice.streamId));
+        stakingContract.stake(users.alice.streamId);
     }
 
     modifier notAlreadyStaking() {
+        resetPrank({ msgSender: users.joe.addr });
         _;
     }
 
     function test_Stake() external whenStreamingAssetIsRewardAsset notAlreadyStaking {
-        uint256 streamId = users.staker.streamId;
-
-        // Expect {Staked} evenet to be emitted.
+        // Expect {Staked} event to be emitted.
         vm.expectEmit({ emitter: address(stakingContract) });
-        emit Staked(users.staker.addr, streamId);
+        emit Staked(users.joe.addr, users.joe.streamId);
 
         // Stake the NFT.
-        stakingContract.stake(streamId);
+        stakingContract.stake(users.joe.streamId);
 
         // Assertions: NFT has been transferred to the staking contract.
-        assertEq(SABLIER.ownerOf(streamId), address(stakingContract));
+        assertEq(SABLIER.ownerOf(users.joe.streamId), address(stakingContract));
 
         // Assertions: storage variables.
-        assertEq(stakingContract.stakedAssets(streamId), users.staker.addr);
-        assertEq(stakingContract.stakedTokenId(users.staker.addr), streamId);
+        assertEq(stakingContract.stakedAssets(users.joe.streamId), users.joe.addr);
+        assertEq(stakingContract.stakedTokenId(users.joe.addr), users.joe.streamId);
 
-        assertEq(stakingContract.totalERC20StakedSupply(), tokenAmountsInStream);
+        assertEq(stakingContract.totalERC20StakedSupply(), AMOUNT_IN_STREAM * 2);
 
         // Assert: `updateReward` has correctly updated the storage variables.
-        assertApproxEqAbs(stakingContract.rewards(users.staker.addr), 0, 0);
+        assertApproxEqAbs(stakingContract.rewards(users.joe.addr), 0, 0);
         assertEq(stakingContract.lastUpdateTime(), block.timestamp);
         assertEq(stakingContract.totalRewardPaidPerERC20Token(), 0);
-        assertEq(stakingContract.userRewardPerERC20Token(users.staker.addr), 0);
+        assertEq(stakingContract.userRewardPerERC20Token(users.joe.addr), 0);
     }
 }

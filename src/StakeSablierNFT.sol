@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity >=0.8.19;
+pragma solidity >=0.8.22;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ERC721Holder } from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { Adminable } from "@sablier/v2-core/src/abstracts/Adminable.sol";
+import { ISablierLockupRecipient } from "@sablier/v2-core/src/interfaces/ISablierLockupRecipient.sol";
 import { ISablierV2Lockup } from "@sablier/v2-core/src/interfaces/ISablierV2Lockup.sol";
 
 /// @title StakeSablierNFT
@@ -22,7 +24,7 @@ import { ISablierV2Lockup } from "@sablier/v2-core/src/interfaces/ISablierV2Lock
 ///   - The staking contract supports only one type of stream at a time, either Lockup Dynamic or Lockup Linear.
 ///   - The Sablier NFT must be transferable because staking requires transferring the NFT to the staking contract.
 ///   - This staking contract assumes that one user can only stake one NFT at a time.
-contract StakeSablierNFT is Adminable, ERC721Holder {
+contract StakeSablierNFT is Adminable, ERC721Holder, ISablierLockupRecipient {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -156,6 +158,11 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
         return totalRewardPaidPerERC20Token + totalRewardsPerERC20InCurrentPeriod;
     }
 
+    // {IERC165-supportsInterface} implementation as required by `ISablierLockupRecipient` interface.
+    function supportsInterface(bytes4 interfaceId) public pure override(IERC165) returns (bool) {
+        return interfaceId == 0xf8ee98d3;
+    }
+
     /*//////////////////////////////////////////////////////////////////////////
                          USER-FACING NON-CONSTANT FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
@@ -172,17 +179,19 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
         }
     }
 
-    /// @notice Implements the hook to handle the cancelation of the stream.
+    /// @notice Implements the hook to handle cancelation events. This will be called by Sablier contract when a stream
+    /// is canceled by the sender.
     /// @dev This function subtracts the amount refunded to the sender from `totalERC20StakedSupply`.
     ///   - This function also updates the rewards for the staker.
-    function onStreamCanceled(
+    function onSablierLockupCancel(
         uint256 streamId,
-        address,
+        address, /* sender */
         uint128 senderAmount,
-        uint128
+        uint128 /* recipientAmount */
     )
         external
         updateReward(stakedAssets[streamId])
+        returns (bytes4 selector)
     {
         // Check: the caller is the lockup contract.
         if (msg.sender != address(sablierLockup)) {
@@ -191,18 +200,22 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
 
         // Effect: update the total staked amount.
         totalERC20StakedSupply -= senderAmount;
+
+        return ISablierLockupRecipient.onSablierLockupCancel.selector;
     }
 
-    /// @notice Implements the hook to handle the withdrawn amount if sender calls the withdraw.
+    /// @notice Implements the hook to handle withdraw events. This will be called by Sablier contract when withdraw is
+    /// called on a stream.
     /// @dev This function transfers `amount` to the original staker.
-    function onStreamWithdrawn(
+    function onSablierLockupWithdraw(
         uint256 streamId,
-        address,
-        address,
+        address, /* caller */
+        address, /* recipient */
         uint128 amount
     )
         external
         updateReward(stakedAssets[streamId])
+        returns (bytes4 selector)
     {
         // Check: the caller is the lockup contract
         if (msg.sender != address(sablierLockup)) {
@@ -221,6 +234,8 @@ contract StakeSablierNFT is Adminable, ERC721Holder {
 
         // Interaction: transfer the withdrawn amount to the original staker.
         rewardERC20Token.safeTransfer(staker, amount);
+
+        return ISablierLockupRecipient.onSablierLockupWithdraw.selector;
     }
 
     /// @notice Stake a Sablier NFT with specified base asset.
